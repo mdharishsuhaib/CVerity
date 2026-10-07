@@ -42,7 +42,6 @@ can audit line by line, and ranks many candidates at once.
 - [Quick Start](#quick-start)
 - [Backend Setup](#backend-setup)
 - [Frontend Setup](#frontend-setup)
-- [Configuration Reference](#configuration-reference)
 - [API Reference](#api-reference)
 - [Database Schema](#database-schema)
 - [Security and Privacy Model](#security-and-privacy-model)
@@ -57,8 +56,6 @@ can audit line by line, and ranks many candidates at once.
 ---
 
 ## Overview
-
-Pipeline, end to end:
 
 1. A user signs up as a **job seeker** or a **recruiter** (JWT authentication with roles).
 2. **Job seekers** upload a resume (PDF, DOCX, TXT or MD, up to 10 MB). It is read in
@@ -156,7 +153,7 @@ flowchart TD
   worker processes.
 - **Database** -- SQLite in WAL mode by default (zero setup), or PostgreSQL via
   `DATABASE_URL`. Embeddings are computed once and stored, so matching later is fast.
-- **Hybrid AI** -- Matching runs entirely on local models (free, private, deterministic).
+- **Hybrid AI** -- Matching runs entirely on local models (private, deterministic).
   An LLM is used only to write feedback, and the app never breaks without one.
 
 ---
@@ -172,10 +169,6 @@ flowchart TD
 | Experience | 15% | Candidate years vs required years, with a smooth `ratio^1.5` penalty instead of a hard cut-off |
 | Education and certifications | 10% | Degree ladder (none to PhD) plus certification overlap |
 | Title | 5% | Fuzzy title similarity, ignoring seniority words such as "Senior" |
-
-Weights are configurable (`WEIGHT_*`) and are renormalized when a component does not
-apply. A vector top-K search narrows the job list first, and results are cached per
-(resume, job) pair.
 
 ### ATS score (0 to 100)
 
@@ -243,15 +236,11 @@ CVerity/
 │   ├── wrangler.jsonc           # Cloudflare Worker settings (name, BACKEND_URL)
 │   ├── open-next.config.ts      # OpenNext adapter for Cloudflare
 │   └── package.json
-├── render.yaml                  # Render Blueprint (free backend, light mode)
+├── render.yaml                  # Render Blueprint (backend, light mode)
 ├── docker-compose.yml           # PostgreSQL + API + web (+ optional Ollama)
 ├── .env.example                 # All settings documented
 └── README.md
 ```
-
-Never committed (kept local by `.gitignore`): `.env`, `backend/data/app.db`,
-`backend/.venv`, `frontend/node_modules`, `frontend/.next`, `frontend/.open-next`,
-`frontend/.wrangler`, `frontend/.dev.vars`, `.agents/` and `skills-lock.json`.
 
 ---
 
@@ -259,7 +248,7 @@ Never committed (kept local by `.gitignore`): `.env`, `backend/data/app.db`,
 
 - **Python 3.11+** (tested on 3.13) for the backend.
 - **Node.js 22+** and `npm` for the frontend (Wrangler needs Node 22).
-- About **2 GB** of free disk space for the optional ML packages (PyTorch CPU + model).
+- About **2 GB** of disk space for the optional ML packages (PyTorch CPU + model).
 - Optional: an [Ollama Cloud](https://ollama.com) or OpenAI key for the AI coach, and
   Docker Desktop.
 
@@ -316,12 +305,13 @@ pip install -r requirements-ml.txt
 python -m spacy download en_core_web_sm
 ```
 
-**AI coach (optional).** Add to `.env` in the project root:
+**AI coach (optional).** Add to `.env` in the project root (every setting is described in
+`.env.example`):
 
 ```env
 LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=https://ollama.com
-OLLAMA_MODEL=gpt-oss:20b
+OLLAMA_MODEL=your-model-here
 OLLAMA_API_KEY=your-key-here
 LLM_TIMEOUT_SECONDS=90
 ```
@@ -345,49 +335,8 @@ npm install
 npm run dev
 ```
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Development server with hot reload on port 3000 |
-| `npm run build` then `npm start` | Production build, then serve it on port 3000 |
-| `npm test` | Frontend unit tests (vitest) |
-| `npm run preview` | Build for Cloudflare and run it locally in the real Workers runtime |
-| `npm run deploy` | Build for Cloudflare and deploy the Worker |
-
-The frontend finds the backend through `BACKEND_URL` (default `http://127.0.0.1:8000`).
-For `npm run preview`, create `frontend/.dev.vars` containing
-`BACKEND_URL=http://127.0.0.1:8000` (that file is git-ignored).
-
-> `npm start` serves the last build. After changing frontend code, run `npm run build`
-> again.
-
----
-
-## Configuration Reference
-
-All backend settings come from `.env` in the project root (see `.env.example`).
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `APP_ENV` | `development` | `production` for live use |
-| `SECRET_KEY` | (dev value) | Signs JWT tokens. Use a long random value in production: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `1440` | Login session length (24 hours) |
-| `DATABASE_URL` | `sqlite:///./data/app.db` | Or `postgresql+psycopg://user:pass@host:5432/db` |
-| `AUTO_CREATE_TABLES` / `AUTO_SEED` | `true` | Create tables and load the starter jobs on start |
-| `CORS_ORIGINS` | `http://localhost:3000` | Only needed for direct API calls from other sites |
-| `MAX_UPLOAD_MB` | `10` | Maximum resume file size |
-| `EMBEDDING_BACKEND` | `auto` | `auto`, `sentence-transformers` or `hashing` (Render uses `hashing`) |
-| `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Any sentence-transformers model |
-| `WEB_CONCURRENCY` | `2` | Worker processes started by `serve.py` (Render uses `1`) |
-| `HOST` / `PORT` | `127.0.0.1` / `8000` | Listen address. Render sets `PORT` itself; `render.yaml` sets `HOST=0.0.0.0` |
-| `LLM_PROVIDER` | `none` | `ollama`, `openai` or `none` |
-| `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | `http://localhost:11434` / `llama3.1` | Use `https://ollama.com` and `gpt-oss:20b` for Ollama Cloud |
-| `OLLAMA_API_KEY` | (empty) | Required for Ollama Cloud |
-| `OPENAI_API_KEY` / `OPENAI_MODEL` | (empty) / `gpt-4o-mini` | For OpenAI |
-| `LLM_TIMEOUT_SECONDS` | `60` | After this, the rule-based coach answers |
-| `WEIGHT_SEMANTIC` ... `WEIGHT_TITLE` | 0.35 / 0.35 / 0.15 / 0.10 / 0.05 | Match score weights |
-| `BACKEND_URL` (frontend) | `http://127.0.0.1:8000` | Where the `/api` proxy points. On Cloudflare it is set in `frontend/wrangler.jsonc` |
-
-> Never commit `.env`. It is already listed in `.gitignore`.
+Open `http://localhost:3000`. The frontend reaches the backend at `http://127.0.0.1:8000`
+by default.
 
 ---
 
@@ -479,7 +428,7 @@ results.
   route checks role and ownership.
 - **Uploaded files are never written to disk.** They are read in memory; only the
   extracted text is stored.
-- **PII redaction** -- emails, phone numbers and LinkedIn/GitHub URLs are removed before
+- **PLI redaction** -- emails, phone numbers and LinkedIn/GitHub URLs are removed before
   any text is sent to an LLM.
 - **Validation** -- file type (PDF, DOCX, TXT, MD) and size (`MAX_UPLOAD_MB`) are checked.
 - **Rate limiting per visitor** -- the `/api` proxy forwards the real client IP, so one
@@ -514,10 +463,10 @@ results.
 
 **Live setup:** frontend on **Cloudflare Workers** ->
 [cverity.mdharishsuhaib.workers.dev](https://cverity.mdharishsuhaib.workers.dev), backend
-on **Render** (free) -> [cverity-api.onrender.com](https://cverity-api.onrender.com/health).
+on **Render** -> [cverity-api.onrender.com](https://cverity-api.onrender.com/health).
 Both redeploy automatically on every push to `main`.
 
-### Backend -> Render (free web service)
+### Backend -> Render (web service)
 
 1. Sign in at [render.com](https://render.com) with GitHub.
 2. **New > Blueprint**, pick this repository. Render reads `render.yaml` and creates the
@@ -526,15 +475,6 @@ Both redeploy automatically on every push to `main`.
 3. Paste your `OLLAMA_API_KEY` when asked. `SECRET_KEY` is generated automatically.
 4. After 2 to 4 minutes, `https://cverity-api.onrender.com/health` returns
    `"status":"ok"`.
-
-#### Light mode on Render
-
-The free plan has 512 MB of memory, too little for PyTorch. `render.yaml` installs only
-`requirements.txt` and sets `EMBEDDING_BACKEND=hashing`, so the app uses its built-in
-hashing embedder and rule-based NLP. Measured: about **93 MB** of memory, the same
-ranking order as full mode, with slightly flatter scores (strong candidate 86.6 vs 97.4,
-weak candidate 20.4 vs 24.5). Bulk upload, live progress, ranking, CSV export and the AI
-coach all work.
 
 ### Frontend -> Cloudflare Workers (OpenNext)
 
@@ -562,11 +502,6 @@ To deploy from your own computer: `cd frontend`, `npx wrangler login`, `npm run 
   local copy (works only while your computer is running).
 - **Hugging Face Docker Space** (paid PRO plan) -- `backend/Dockerfile` and
   `backend/README.md` deploy unchanged in full ML mode on port 7860.
-
-**Free plan notes:** the Worker bundle is about 1.0 MiB gzipped (limit 3 MiB). Render free
-services sleep after 15 minutes idle and have no persistent disk, so SQLite resets on
-restart; set `DATABASE_URL` to a free PostgreSQL database (for example
-[Neon](https://neon.tech)) for permanent data.
 
 ---
 
@@ -609,7 +544,7 @@ while it wakes up; open `https://cverity-api.onrender.com/health` and wait for i
 
 ### Data disappeared on the live site
 
-The free Render service restarted and its SQLite database reset (the starter jobs are reloaded).
+The Render service restarted and its SQLite database reset (the starter jobs are reloaded).
 Use PostgreSQL (`DATABASE_URL`) for permanent data.
 
 ### Cloudflare build: "Could not detect a directory containing static files"
@@ -663,7 +598,7 @@ for /f "tokens=5" %a in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') d
 - English resumes work best (the taxonomy and NLP are English).
 - The vector index lives in memory: fine for thousands of jobs, not millions.
 - Rate limits are per worker process (Redis would share them across servers).
-- On the free Render plan, the backend runs in light mode, sleeps when idle and resets its
+- On Render, the backend runs in light mode, sleeps when idle and resets its
   SQLite data on restart.
 
 **Next steps**

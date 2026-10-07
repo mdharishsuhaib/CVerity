@@ -17,6 +17,9 @@
   ],
   // Keep variables set in the dashboard (BACKEND_URL) instead of wiping them on every deploy.
   "keep_vars": true,
+  // Serve on https://cverity.<subdomain>.workers.dev and give each non-production upload its own preview URL.
+  "workers_dev": true,
+  "preview_urls": true,
   "observability": {
     "enabled": true
   }

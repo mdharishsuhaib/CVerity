@@ -84,7 +84,7 @@ CVerity reads a resume the way an Applicant Tracking System (ATS) and a recruite
 | Data fetching | **TanStack React Query** | Caching, background refresh, polling |
 | Real time | Server-Sent Events + polling fallback | Live candidate progress without WebSocket infrastructure |
 | Testing | **pytest**, **vitest** | Backend and frontend unit and API tests |
-| Deployment | Cloudflare Workers (OpenNext) + Hugging Face Spaces, Docker Compose, Cloudflare Tunnel | Free global hosting; one command locally; instant public link |
+| Deployment | Cloudflare Workers (OpenNext) + Render, Docker Compose, Cloudflare Tunnel | Free global hosting; one command locally; instant public link |
 
 ---
 
@@ -105,7 +105,7 @@ CVerity reads a resume the way an Applicant Tracking System (ATS) and a recruite
                                                  v
         +-------------------------------------------+
         |  FastAPI backend  (2 workers)             |
-        |  local: port 8000 | live: HF Space (7860) |
+        |  local: port 8000 | live: Render (free)   |
         |  rate limit + security headers            |
         |  auth | resumes | jobs | match | recruiter|
         |                  |                        |
@@ -193,14 +193,15 @@ VC/
 |-- .gitattributes            consistent line endings on Windows, macOS and Linux
 |-- .gitignore                keeps secrets, databases, resumes and build output out of git
 |-- docker-compose.yml        PostgreSQL + API + web (+ optional local Ollama)
+|-- render.yaml               Render Blueprint: free backend hosting in light mode
 |-- README.md
 |
 |-- backend/
 |   |-- serve.py              production launcher: create tables, seed once, start N workers
 |   |-- requirements.txt      core dependencies
 |   |-- requirements-ml.txt   optional: sentence-transformers, spaCy (best quality)
-|   |-- Dockerfile            works with docker compose and Hugging Face Spaces (port 7860)
-|   |-- README.md             Hugging Face Space settings (only used on the Space)
+|   |-- Dockerfile            docker compose (full ML mode); also works on a paid Hugging Face Docker Space (port 7860)
+|   |-- README.md             Hugging Face Space settings (only used on a Space)
 |   |-- app/
 |   |   |-- main.py           FastAPI app, startup warm-up, middleware, routers, /health
 |   |   |-- schemas.py        Pydantic request and response models
@@ -227,7 +228,7 @@ VC/
 |   `-- tests/                pytest suites + fixture resumes
 |
 `-- frontend/
-    |-- middleware.ts         /api proxy to FastAPI (reads BACKEND_URL at runtime)
+    |-- middleware.ts         /api proxy to FastAPI (reads BACKEND_URL at runtime; on Cloudflare without BACKEND_URL it returns a clear 503)
     |-- next.config.mjs       security headers, standalone build
     |-- wrangler.jsonc        Cloudflare Worker settings (name: cverity)
     |-- open-next.config.ts   OpenNext adapter settings for Cloudflare
@@ -347,9 +348,9 @@ All settings come from `.env` in the project root (see `.env.example` for commen
 | `AUTO_CREATE_TABLES` / `AUTO_SEED` | `true` | Create tables and load demo data on start |
 | `CORS_ORIGINS` | `http://localhost:3000` | Only needed for direct API calls from other sites |
 | `MAX_UPLOAD_MB` | `10` | Maximum resume file size |
-| `EMBEDDING_BACKEND` | `auto` | `auto`, `sentence-transformers` or `hashing` |
+| `EMBEDDING_BACKEND` | `auto` | `auto`, `sentence-transformers` or `hashing`. `render.yaml` sets `hashing` (light mode for the 512 MB free plan) |
 | `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Any sentence-transformers model |
-| `WEB_CONCURRENCY` | `2` | Backend worker processes used by `serve.py` |
+| `WEB_CONCURRENCY` | `2` | Backend worker processes used by `serve.py`. `render.yaml` sets `1` to stay within the free plan's memory |
 | `LLM_PROVIDER` | `none` | `ollama`, `openai` or `none` |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | `https://ollama.com` for Ollama Cloud |
 | `OLLAMA_MODEL` | `llama3.1` | For example `gpt-oss:20b` on Ollama Cloud |
@@ -359,7 +360,7 @@ All settings come from `.env` in the project root (see `.env.example` for commen
 | `WEIGHT_SEMANTIC` ... `WEIGHT_TITLE` | 0.35 / 0.35 / 0.15 / 0.10 / 0.05 | Match score weights |
 | `NEXT_PUBLIC_API_URL` | (empty) | Leave empty so the browser uses the `/api` proxy |
 | `BACKEND_URL` | `http://127.0.0.1:8000` | Where the `/api` proxy points. Read at **runtime**: from your shell or Docker locally, from `frontend/.dev.vars` for `npm run preview`, and as a Worker variable on Cloudflare |
-| `HOST` / `PORT` | `127.0.0.1` / `8000` | Address `serve.py` listens on. The Docker image sets `0.0.0.0` / `7860` for Hugging Face Spaces; docker compose uses port 8000 |
+| `HOST` / `PORT` | `127.0.0.1` / `8000` | Address `serve.py` listens on. The Docker image sets `0.0.0.0` / `7860` (Hugging Face Spaces); docker compose uses port 8000; on Render, `render.yaml` sets `HOST=0.0.0.0` and Render supplies `PORT` automatically |
 
 **Ollama Cloud example:**
 
@@ -391,32 +392,36 @@ It prints a `https://<random-words>.trycloudflare.com` address that anyone can o
 - The address changes each time the tunnel restarts.
 - Quick tunnels may buffer Server-Sent Events. The UI then falls back to refreshing every 2 seconds, so progress still updates.
 
-### Option B: Cloudflare Workers (frontend) + Hugging Face Spaces (backend), free
+### Option B: Cloudflare Workers (frontend) + Render (backend), free
 
-The frontend is a Next.js app deployed to Cloudflare Workers with the [OpenNext adapter](https://opennext.js.org/cloudflare). The Python backend (PyTorch + AI models) cannot run inside a Worker, so it runs as a Docker Space on Hugging Face. The Worker forwards every `/api/*` request to it (`frontend/middleware.ts`).
+The frontend is a Next.js app deployed to Cloudflare Workers with the [OpenNext adapter](https://opennext.js.org/cloudflare). The Python backend cannot run inside a Worker, so it runs as a free web service on [Render](https://render.com). The Worker forwards every `/api/*` request to it (`frontend/middleware.ts`).
 
-**Step 1: deploy the backend on Hugging Face Spaces**
-1. Create a Space at [huggingface.co/new-space](https://huggingface.co/new-space): SDK **Docker**, template **Blank**, hardware **CPU basic (free)**.
-2. Upload everything inside `backend/` to the root of the Space, including `Dockerfile` and `README.md`. Skip `.venv`, `__pycache__` and `data/app.db`.
-3. In the Space, open **Settings > Variables and secrets** and add these **secrets**: `SECRET_KEY` (a long random value), `OLLAMA_API_KEY`. Add these **variables**: `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL=https://ollama.com`, `OLLAMA_MODEL=gpt-oss:20b`, `LLM_TIMEOUT_SECONDS=90`.
-4. Wait for the build, then open `https://<user>-<space>.hf.space/health`. It should return `"status":"ok"`.
+> Hugging Face Docker Spaces now require a paid PRO plan, so the free setup uses Render instead. If you have PRO, `backend/Dockerfile` and `backend/README.md` still deploy unchanged to a Docker Space (full ML mode).
+
+**Light mode on Render.** The free plan has 512 MB of memory, which is too little for PyTorch. `render.yaml` therefore installs only `requirements.txt` and sets `EMBEDDING_BACKEND=hashing`: the app uses its built-in hashing embedder and rule-based NLP instead of sentence-transformers and spaCy. Measured locally in light mode: about 93 MB of memory, and the same ranking order as full mode, with slightly flatter scores (strong candidate 86.6 vs 97.4, weak candidate 20.4 vs 24.5). Bulk upload, live progress, ranking, CSV export and the AI coach (Ollama Cloud) all work.
+
+**Step 1: deploy the backend on Render**
+1. Sign up at [render.com](https://render.com) with your GitHub account (no card needed).
+2. Click **New > Blueprint**, pick this repository, and confirm. Render reads `render.yaml` and creates the `cverity-api` web service.
+3. When asked, paste your `OLLAMA_API_KEY`. `SECRET_KEY` is generated automatically.
+4. Wait for the first deploy (2 to 4 minutes), then open `https://cverity-api.onrender.com/health` (Render shows the exact URL on the service page). It should return `"status":"ok"` with `"embedding_model":"hashing-v1"`.
 
 **Step 2: deploy the frontend on Cloudflare Workers**
 1. In the Cloudflare dashboard, open your Worker > **Settings > Build** and set:
    - **Root directory:** `frontend`
-   - **Build command:** `npm ci`
+   - **Build command:** `npm ci` (optional: Cloudflare already installs dependencies automatically, so leaving this empty saves about 45 seconds per build)
    - **Deploy command:** `npm run deploy`
-2. Under **Settings > Variables and secrets**, add `BACKEND_URL` = `https://<user>-<space>.hf.space` (no trailing slash).
+2. Under **Settings > Variables and secrets**, add `BACKEND_URL` = your Render URL, for example `https://cverity-api.onrender.com` (no trailing slash).
 3. The Worker name in the dashboard must match `"name"` in `frontend/wrangler.jsonc` (`cverity`).
-4. Push to GitHub. Cloudflare builds and deploys automatically on every push.
-5. Open your Worker URL (`https://cverity.<your-subdomain>.workers.dev`), then check `/api/health` there. It should return the same `"status":"ok"` as the Space.
+4. Push to GitHub. Cloudflare and Render both build and deploy automatically on every push.
+5. Open your Worker URL (`https://cverity.<your-subdomain>.workers.dev`), then check `/api/health` there. It should return the same `"status":"ok"` as Render.
 
-To deploy from your own computer instead, run `cd frontend`, `npx wrangler login`, then `npm run deploy`. On Windows, OpenNext recommends WSL or CI for best results.
+To deploy the frontend from your own computer instead, run `cd frontend`, `npx wrangler login`, then `npm run deploy`. On Windows, OpenNext recommends WSL or CI for best results.
 
 **Free plan notes**
 - The Worker bundle is about 1.0 MiB gzipped, under the 3 MiB free-plan limit.
-- Free Spaces sleep after about 48 hours without visitors; the first request after that takes a minute to wake up.
-- Free Spaces have no persistent disk. The SQLite database resets when the Space restarts (demo users and jobs are re-seeded). For permanent data, set `DATABASE_URL` to a free PostgreSQL database such as [Neon](https://neon.tech).
+- Render free services sleep after 15 minutes without requests. The first request after that takes about 30 to 60 seconds while it wakes up; later requests are fast.
+- Render free services have no persistent disk. The SQLite database resets on every redeploy or restart (demo users and sample jobs are re-seeded). For permanent data, set `DATABASE_URL` to a free PostgreSQL database such as [Neon](https://neon.tech).
 
 ### Option C: any server with Docker
 - Any VPS or cloud VM: install Docker and run `docker compose up --build -d`, then put a domain and HTTPS in front (Cloudflare, Caddy or Nginx).
@@ -521,7 +526,7 @@ Tests use a separate database (`backend/data/test.db`) and do not touch your rea
 - **PII redaction**: emails, phone numbers and profile URLs are removed before text is sent to any LLM.
 - File type and size are validated (PDF, DOCX, TXT, MD up to `MAX_UPLOAD_MB`).
 - Rate limiting per visitor IP (the `/api` proxy forwards the real IP, so one visitor cannot use up everyone's limit) and security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
-- Keep API keys only in `.env` locally, and in **Variables and secrets** on Hugging Face and Cloudflare. Never put them in code or in this README.
+- Keep API keys only in `.env` locally, and in the environment settings on Render and Cloudflare. Never put them in code or in this README.
 - `.gitignore` keeps secrets and personal data out of git: `.env` files, private keys and certificates, credential files, databases, uploaded resumes (`*.pdf`, `*.docx`), exported candidate CSVs, logs, `frontend/.dev.vars` and Cloudflare build output.
 
 ---
@@ -536,12 +541,14 @@ Tests use a separate database (`backend/data/test.db`) and do not touch your rea
 | AI suggestions say "rule-based" | The LLM is off, out of quota (HTTP 429) or timed out. Check `LLM_PROVIDER` and your key; the rest of the app still works |
 | Frontend shows network errors | The backend is not running, or `BACKEND_URL` points to the wrong address. On Cloudflare, check the Worker variable |
 | Cloudflare: "Could not detect a directory containing static files" | The build is running from the repo root. Set **Root directory** to `frontend` and **Deploy command** to `npm run deploy` (section 8, Option B) |
-| Cloudflare site loads but login fails | `BACKEND_URL` is missing on the Worker, or the Hugging Face Space is asleep or still building. Open `<space-url>/health` to wake it, then retry |
-| Data disappeared on the live site | The free Hugging Face Space restarted and its SQLite database reset. Use PostgreSQL (`DATABASE_URL`) for permanent data |
+| Cloudflare site loads but login fails | `BACKEND_URL` is missing on the Worker, or the Render service is asleep or still deploying. Open `<render-url>/health` to wake it (about 30 to 60 seconds), then retry |
+| `/api/health` on Cloudflare returns 503 "Backend not configured" (or "error code: 1003") | The Worker has no `BACKEND_URL`. Deploy the backend on Render first (Step 1), then add `BACKEND_URL` under **Settings > Variables and secrets** on the Worker |
+| Data disappeared on the live site | The free Render service restarted or redeployed and its SQLite database reset. Use PostgreSQL (`DATABASE_URL`) for permanent data |
+| Render deploy fails with "out of memory" | The build installed the ML packages. Keep the Render build command as `pip install -r requirements.txt` only (as in `render.yaml`) |
 | Tab still shows an old icon or title | Rebuild the frontend (`npm run build`), then press `Ctrl + Shift + R`, or close and reopen the tab. Browsers cache tab icons |
 | Frontend changes do not appear | `npm start` serves the last build. Run `npm run build` first |
 | Sample job edits do not appear | Seeding is skipped once jobs exist. See the [demo accounts](#demo-accounts-created-automatically-on-first-start) note on reloading sample jobs |
-| `.next/cache` is large | It is a disposable build cache (can reach about 300 MB). Delete `frontend/.next/cache` any time; it is recreated on the next build |
+| `.next/cache` is large | It is a disposable build cache (can reach about 300 MB). Delete `frontend/.next/cache` any time; it is recreated on the next build. The same goes for `frontend/tsconfig.tsbuildinfo` (TypeScript's check cache, about 800 KB) |
 | Logged out unexpectedly | `SECRET_KEY` changed or the token expired. Log in again |
 | Scanned (image-only) PDF gives an empty result | There is no text to extract. Export the resume as a text-based PDF or DOCX |
 | `database is locked` | Rare with WAL mode. Restart the backend, or switch to PostgreSQL for heavy use |
@@ -557,7 +564,7 @@ Tests use a separate database (`backend/data/test.db`) and do not touch your rea
 - English resumes work best (taxonomy and NLP are English).
 - The vector index lives in memory. It is fine for thousands of jobs; pgvector or FAISS would be needed for millions.
 - Rate limits are per worker process; Redis would be needed to share them across many servers.
-- On the free Hugging Face plan, the backend sleeps when idle and its SQLite data resets on restart.
+- On the free Render plan, the backend runs in light mode (no PyTorch), sleeps after 15 minutes idle, and its SQLite data resets on restart.
 
 **Ideas for next steps**
 - OCR with Tesseract for scanned resumes
@@ -581,7 +588,7 @@ Suggested reading order to understand the project:
 6. `backend/app/services/ats.py` and `llm.py`: rule-based scoring and safe LLM use with a fallback.
 7. `frontend/lib/api.ts`, `frontend/middleware.ts` and `frontend/components/providers.tsx`: how the UI calls the API through the proxy and keeps login state.
 8. `frontend/app/seeker/resumes/[id]/page.tsx`: a full feature page with tabs, queries and mutations.
-9. `frontend/wrangler.jsonc` and `backend/Dockerfile`: how the same code is packaged for Cloudflare Workers and Hugging Face Spaces.
+9. `frontend/wrangler.jsonc`, `render.yaml` and `backend/Dockerfile`: how the same code is packaged for Cloudflare Workers, Render and Docker.
 
 **Concepts you will practice:** REST API design, JWT auth and role-based access, file parsing, NLP, text embeddings and cosine similarity, explainable scoring, background tasks, Server-Sent Events, React Query caching, Tailwind design tokens, edge deployment with Cloudflare Workers, Docker and testing with pytest.
 
@@ -594,7 +601,8 @@ Suggested reading order to understand the project:
 - **PII:** personally identifiable information (email, phone and so on).
 - **SSE (Server-Sent Events):** a simple one-way stream from server to browser for live updates.
 - **Cloudflare Worker:** code that runs on Cloudflare's servers worldwide, close to each visitor. CVerity's frontend runs as one.
-- **Hugging Face Space:** free hosting for apps and Docker containers. CVerity's backend runs as one.
+- **Render:** a hosting service that builds and runs web apps straight from a GitHub repo. CVerity's backend runs on its free plan, configured by `render.yaml`.
+- **Hugging Face Space:** hosting for ML apps. Docker Spaces need a paid plan; `backend/Dockerfile` still works there.
 
 ---
 

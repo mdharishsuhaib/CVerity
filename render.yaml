@@ -1,0 +1,41 @@
+# Render Blueprint: deploys the CVerity API (FastAPI) on Render's free plan.
+# Render dashboard > New > Blueprint > pick this GitHub repo. Render reads this file and creates the service.
+#
+# Light mode: the free plan has 512 MB of memory, so the heavy ML packages (PyTorch, sentence-transformers,
+# spaCy) are NOT installed. The app falls back to its built-in hashing embedder and rule-based NLP
+# (about 95 MB in use). Ranking order stays the same; scores are slightly less fine-grained.
+services:
+  - type: web
+    name: cverity-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python serve.py
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.11"
+      - key: HOST
+        value: 0.0.0.0
+      # One worker keeps memory low and avoids SQLite write contention on the free plan.
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: APP_ENV
+        value: production
+      - key: EMBEDDING_BACKEND
+        value: hashing
+      - key: SECRET_KEY
+        generateValue: true
+      - key: LLM_PROVIDER
+        value: ollama
+      - key: OLLAMA_BASE_URL
+        value: https://ollama.com
+      - key: OLLAMA_MODEL
+        value: gpt-oss:20b
+      - key: LLM_TIMEOUT_SECONDS
+        value: "90"
+      # Entered in the dashboard when the Blueprint is created; never committed.
+      - key: OLLAMA_API_KEY
+        sync: false

@@ -1,0 +1,157 @@
+# =====================================================================
+#  SECRETS AND CREDENTIALS  (never commit these)
+# =====================================================================
+
+# Environment files: API keys (Ollama / OpenAI), SECRET_KEY (JWT), DB passwords
+.env
+.env.*
+*.env
+!.env.example
+.envrc
+
+# Private keys, certificates and keystores
+*.pem
+*.key
+*.crt
+*.cer
+*.csr
+*.der
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+id_ecdsa*
+*.ppk
+
+# Credential / token files
+secrets/
+secret/
+.secrets/
+*.secret
+*.secrets
+credentials*.json
+*credentials*.json
+service-account*.json
+*-sa.json
+client_secret*.json
+token.json
+*.token
+.netrc
+.npmrc
+.pypirc
+.htpasswd
+*.kdbx
+
+# Cloudflare Tunnel credentials and local config
+.cloudflared/
+cloudflared/
+cert.pem
+*.cloudflared.json
+
+# Hosting / deployment CLI state (may contain tokens)
+.vercel/
+.netlify/
+.wrangler/
+.railway/
+.render/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# =====================================================================
+#  PERSONAL DATA  (resumes, user accounts, uploaded files)
+# =====================================================================
+
+# Databases: user emails, password hashes, resume text, match results
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-*
+backend/data/*.db*
+
+# Uploaded or local resume files (contain names, phones, emails, addresses)
+uploads/
+backend/uploads/
+resumes/
+my_resume*
+*.pdf
+*.docx
+*.doc
+*.rtf
+*.odt
+
+# Database dumps and backups
+*.sql
+*.dump
+*.bak
+*.backup
+backups/
+
+# Exported candidate lists
+candidates_*.csv
+exports/
+
+# =====================================================================
+#  LOGS  (may contain tokens, emails or request data)
+# =====================================================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =====================================================================
+#  PYTHON
+# =====================================================================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Downloaded ML model caches
+.cache/
+huggingface/
+
+# =====================================================================
+#  NODE / NEXT.JS
+# =====================================================================
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+coverage/
+
+# =====================================================================
+#  EDITOR / OS / LOCAL TOOLING
+# =====================================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.tmp
+.cursor/
+
+# =====================================================================
+#  LOCAL AI ASSISTANT SKILLS  (kept on this machine, not in the repo)
+#  Installed with: npx skills add Leonxlnx/taste-skill
+# =====================================================================
+.agents/
+skills-lock.json

@@ -1,0 +1,188 @@
+{
+  "_format": "Each entry: 'Canonical|alias1|alias2'. A leading '!' marks an ambiguous short skill matched case-sensitively and only in list-like contexts.",
+  "categories": {
+    "Programming Languages": [
+      "Python|python3|py", "Java", "JavaScript|js|ecmascript|es6", "TypeScript|ts", "!C", "C++|cpp", "C#|c sharp|csharp",
+      "!Go|golang", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "Scala", "!R", "MATLAB", "Perl", "Dart", "Elixir", "Erlang",
+      "Haskell", "Clojure", "F#", "Julia", "Lua", "Objective-C|objective c", "Groovy", "Visual Basic|vb.net|vba", "COBOL",
+      "Fortran", "Assembly", "Solidity", "Bash|shell scripting|shell", "PowerShell", "SQL", "PL/SQL|plsql", "T-SQL|tsql",
+      "Zig", "OCaml", "Apex", "ABAP", "SAS", "Prolog", "Verilog", "VHDL"
+    ],
+    "Frontend": [
+      "React|react.js|reactjs", "Next.js|nextjs|next js", "Angular|angularjs|angular.js", "Vue.js|vue|vuejs", "Nuxt.js|nuxt",
+      "Svelte|sveltekit", "SolidJS", "Remix", "Gatsby", "Redux|redux toolkit", "Zustand", "MobX", "jQuery", "HTML|html5",
+      "CSS|css3", "Sass|scss", "Less", "Tailwind CSS|tailwind|tailwindcss", "Bootstrap", "Material UI|mui", "Chakra UI",
+      "shadcn/ui|shadcn", "Styled Components", "Webpack", "Vite", "Babel", "Storybook", "Three.js", "D3.js|d3", "WebGL",
+      "Web Components", "Responsive Design", "Accessibility|a11y|wcag", "PWA|progressive web apps", "WebAssembly|wasm",
+      "React Query|tanstack query", "Recharts", "Chart.js"
+    ],
+    "Backend": [
+      "Node.js|node|nodejs", "Express.js|express|expressjs", "NestJS", "Fastify", "Django", "Flask", "FastAPI",
+      "Spring|spring framework", "Spring Boot|springboot", "Hibernate", "Ruby on Rails|rails", "Laravel", "Symfony",
+      ".NET|dotnet|.net core|asp.net|asp.net core", "Entity Framework", "Gin", "Echo", "Fiber", "Actix", "Phoenix",
+      "Celery", "gRPC", "GraphQL|apollo graphql", "REST|rest api|restful|restful apis|rest apis", "WebSockets|websocket",
+      "Microservices|microservice architecture", "Event-Driven Architecture|event driven", "OAuth|oauth2", "JWT",
+      "OpenAPI|swagger", "SOAP", "Serverless", "Socket.io", "Deno", "Bun", "Prisma", "Sequelize", "TypeORM", "SQLAlchemy",
+      "Pydantic", "Strapi", "Kong"
+    ],
+    "Mobile": [
+      "React Native", "Flutter", "iOS|ios development", "Android|android development", "SwiftUI", "Jetpack Compose",
+      "Xamarin", "Ionic", "Expo", "Kotlin Multiplatform"
+    ],
+    "Relational Databases": [
+      "PostgreSQL|postgres|psql", "MySQL", "SQLite", "Microsoft SQL Server|sql server|mssql", "Oracle Database|oracle db|oracle",
+      "MariaDB", "CockroachDB", "Amazon Aurora|aurora", "Snowflake", "BigQuery|google bigquery", "Amazon Redshift|redshift",
+      "Teradata", "Supabase"
+    ],
+    "NoSQL Databases": [
+      "MongoDB|mongo", "Redis", "Cassandra|apache cassandra", "DynamoDB|amazon dynamodb", "Couchbase", "CouchDB",
+      "Firebase|firestore", "Neo4j", "Elasticsearch|elastic search", "OpenSearch", "HBase", "InfluxDB", "Memcached",
+      "Pinecone", "Weaviate", "Milvus", "Qdrant", "pgvector", "ChromaDB|chroma", "FAISS"
+    ],
+    "Cloud Platforms": [
+      "AWS|amazon web services", "Microsoft Azure|azure", "Google Cloud Platform|gcp|google cloud", "IBM Cloud",
+      "Oracle Cloud|oci", "DigitalOcean", "Heroku", "Vercel", "Netlify", "Cloudflare", "Alibaba Cloud"
+    ],
+    "Cloud Services": [
+      "AWS Lambda|lambda", "Amazon EC2|ec2", "Amazon S3|s3", "Amazon RDS|rds", "Amazon ECS|ecs", "Amazon EKS|eks",
+      "Amazon SQS|sqs", "Amazon SNS|sns", "CloudFormation", "AWS CDK|cdk", "API Gateway", "CloudWatch", "AWS Glue|glue",
+      "Amazon SageMaker|sagemaker", "Azure Functions", "Azure DevOps", "Azure ML|azure machine learning", "AKS",
+      "Google Kubernetes Engine|gke", "Cloud Run", "Cloud Functions", "Vertex AI", "IAM", "Cloudflare Workers"
+    ],
+    "DevOps": [
+      "Docker", "Kubernetes|k8s", "Helm", "Terraform", "Ansible", "Puppet", "Chef", "Pulumi", "Jenkins",
+      "GitHub Actions", "GitLab CI|gitlab ci/cd", "CircleCI", "Travis CI", "Argo CD|argocd", "CI/CD|ci cd|continuous integration|continuous delivery",
+      "Git", "GitHub", "GitLab", "Bitbucket", "Linux", "Unix", "Nginx", "Apache HTTP Server|apache httpd", "Prometheus",
+      "Grafana", "Datadog", "New Relic", "Splunk", "ELK Stack|elk", "Logstash", "Kibana", "OpenTelemetry", "Jaeger",
+      "Istio", "Envoy", "Vagrant", "Packer", "Vault|hashicorp vault", "Consul", "Infrastructure as Code|iac",
+      "Site Reliability Engineering|sre", "Observability", "Load Balancing", "Bash Scripting", "Podman", "OpenShift"
+    ],
+    "Data Engineering": [
+      "Apache Spark|spark|pyspark", "Hadoop", "Apache Kafka|kafka", "Apache Airflow|airflow", "dbt", "Apache Flink|flink",
+      "Apache Beam", "Databricks", "Hive", "Presto", "Trino", "ETL|elt", "Data Warehousing|data warehouse",
+      "Data Modeling", "Data Pipelines|data pipeline", "Delta Lake", "Apache Iceberg|iceberg", "Fivetran", "Kinesis",
+      "RabbitMQ", "Apache Pulsar", "NiFi", "Dagster", "Prefect", "Data Lake", "Informatica", "Talend", "SSIS"
+    ],
+    "Data Science & Analytics": [
+      "Pandas", "NumPy", "SciPy", "Matplotlib", "Seaborn", "Plotly", "Jupyter|jupyter notebook", "Statistics|statistical analysis",
+      "A/B Testing|ab testing", "Hypothesis Testing", "Regression", "Time Series|time series analysis", "Data Analysis",
+      "Data Visualization", "Tableau", "Power BI|powerbi", "Looker", "Excel|microsoft excel", "Google Analytics",
+      "Mixpanel", "Amplitude", "SPSS", "Stata", "Data Mining", "Feature Engineering", "Business Intelligence|bi",
+      "Metabase", "Superset", "Polars", "Dask"
+    ],
+    "Machine Learning & AI": [
+      "Machine Learning|ml", "Deep Learning", "Artificial Intelligence|ai", "TensorFlow", "PyTorch", "Keras", "scikit-learn|sklearn|scikit learn",
+      "XGBoost", "LightGBM", "CatBoost", "Natural Language Processing|nlp", "Computer Vision|cv", "OpenCV",
+      "Reinforcement Learning", "Transformers|hugging face transformers", "Hugging Face|huggingface", "LLM|llms|large language models",
+      "Generative AI|genai|gen ai", "Prompt Engineering", "RAG|retrieval augmented generation", "LangChain", "LlamaIndex",
+      "OpenAI API|openai", "Fine-tuning|fine tuning", "BERT", "GPT", "spaCy", "NLTK", "Sentence Transformers|sentence-transformers",
+      "MLOps", "MLflow", "Kubeflow", "Weights & Biases|wandb", "ONNX", "TensorRT", "CUDA", "Recommendation Systems|recommender systems",
+      "Neural Networks", "CNN|convolutional neural networks", "RNN|lstm", "GANs|generative adversarial networks",
+      "Diffusion Models|stable diffusion", "Embeddings|vector embeddings", "Vector Databases|vector database", "Ollama",
+      "Model Deployment", "Anomaly Detection", "Speech Recognition", "YOLO", "JAX", "AutoML", "Clustering", "Classification"
+    ],
+    "Testing & QA": [
+      "Unit Testing|unit tests", "Integration Testing", "Test Automation|automated testing", "Selenium", "Cypress", "Playwright",
+      "Jest", "Mocha", "Vitest", "pytest", "JUnit", "TestNG", "Cucumber", "Postman", "JMeter", "Locust", "TDD|test driven development",
+      "BDD", "Appium", "Manual Testing", "Load Testing|performance testing", "React Testing Library"
+    ],
+    "Security": [
+      "Cybersecurity|cyber security|information security", "Penetration Testing|pentesting", "OWASP", "SIEM", "SOC",
+      "Vulnerability Assessment", "Network Security", "Encryption|cryptography", "Identity and Access Management",
+      "Zero Trust", "Burp Suite", "Wireshark", "Metasploit", "Nmap", "Incident Response", "Threat Modeling", "SAST", "DAST",
+      "ISO 27001", "SOC 2", "GDPR", "HIPAA", "PCI DSS", "Firewalls", "Kali Linux", "Okta", "Auth0", "SSO|single sign-on", "SAML"
+    ],
+    "Networking & Systems": [
+      "TCP/IP", "DNS", "HTTP", "VPN", "Networking|computer networking", "Cisco", "Routing and Switching", "Windows Server",
+      "Active Directory", "VMware", "Hyper-V", "System Administration|sysadmin", "Shell", "Embedded Systems", "RTOS",
+      "IoT|internet of things", "Arduino", "Raspberry Pi", "FPGA", "Distributed Systems", "Operating Systems", "Concurrency",
+      "Multithreading", "Performance Optimization", "Caching", "System Design"
+    ],
+    "Design": [
+      "Figma", "Sketch", "Adobe XD", "Adobe Photoshop|photoshop", "Adobe Illustrator|illustrator", "InVision", "Framer",
+      "UI Design|ui", "UX Design|ux|user experience", "User Research", "Wireframing", "Prototyping", "Design Systems",
+      "Interaction Design", "Usability Testing", "Information Architecture", "Visual Design", "Adobe After Effects|after effects",
+      "Premiere Pro", "Canva", "Blender", "Typography"
+    ],
+    "Product & Project Management": [
+      "Agile", "Scrum", "Kanban", "Jira", "Confluence", "Trello", "Asana", "Notion", "Product Management", "Product Strategy",
+      "Roadmapping|product roadmap", "Stakeholder Management", "Project Management", "Program Management", "Waterfall",
+      "Lean", "Six Sigma", "OKRs", "KPIs", "Requirements Gathering", "User Stories", "Risk Management", "Budgeting",
+      "Vendor Management", "Change Management", "Market Research", "Go-to-Market|gtm", "Product Analytics", "Monday.com"
+    ],
+    "Business & Marketing": [
+      "SEO|search engine optimization", "SEM", "Content Marketing", "Digital Marketing", "Social Media Marketing",
+      "Email Marketing", "Google Ads", "Facebook Ads|meta ads", "HubSpot", "Salesforce", "CRM", "Marketing Automation",
+      "Copywriting", "Brand Management", "Growth Hacking|growth marketing", "Sales", "Business Development", "Lead Generation",
+      "Customer Success", "Account Management", "Negotiation", "Financial Analysis", "Financial Modeling", "Accounting",
+      "Bookkeeping", "QuickBooks", "SAP", "ERP", "Supply Chain", "Procurement", "Logistics", "Forecasting", "Budget Planning",
+      "Business Analysis", "Process Improvement", "Operations Management", "Recruiting|recruitment|talent acquisition",
+      "HR|human resources", "Payroll", "Customer Service", "Zendesk", "Shopify", "WordPress", "E-commerce|ecommerce"
+    ],
+    "Blockchain": [
+      "Blockchain", "Ethereum", "Smart Contracts", "Web3|web3.js", "Hardhat", "Truffle", "DeFi", "NFT", "Hyperledger"
+    ],
+    "Game & Graphics": [
+      "Unity|unity3d", "Unreal Engine|unreal", "Godot", "OpenGL", "DirectX", "Vulkan", "Game Development", "AR/VR|augmented reality|virtual reality"
+    ],
+    "Soft Skills": [
+      "Leadership", "Communication", "Teamwork|collaboration", "Problem Solving|problem-solving", "Critical Thinking",
+      "Time Management", "Mentoring|mentorship", "Public Speaking", "Presentation Skills|presentations", "Adaptability",
+      "Creativity", "Attention to Detail", "Cross-functional Collaboration|cross-functional", "Decision Making",
+      "Conflict Resolution", "Emotional Intelligence", "Customer Focus", "Strategic Thinking", "Analytical Skills",
+      "People Management|team management", "Coaching", "Technical Writing|documentation"
+    ]
+  },
+  "related": [
+    ["PostgreSQL", "MySQL", "SQLite", "Microsoft SQL Server", "Oracle Database", "MariaDB", "SQL", "Amazon Aurora", "CockroachDB"],
+    ["React", "Next.js", "Vue.js", "Angular", "Svelte", "SolidJS", "Remix", "Nuxt.js", "Gatsby"],
+    ["AWS", "Microsoft Azure", "Google Cloud Platform"],
+    ["Docker", "Kubernetes", "Podman", "OpenShift", "Helm"],
+    ["Terraform", "Pulumi", "CloudFormation", "AWS CDK", "Ansible", "Infrastructure as Code"],
+    ["Jenkins", "GitHub Actions", "GitLab CI", "CircleCI", "Travis CI", "Argo CD", "CI/CD"],
+    ["TensorFlow", "PyTorch", "Keras", "JAX"],
+    ["scikit-learn", "XGBoost", "LightGBM", "CatBoost", "Machine Learning"],
+    ["Django", "Flask", "FastAPI"],
+    ["Express.js", "NestJS", "Fastify", "Node.js"],
+    ["Spring", "Spring Boot", "Hibernate", "Java"],
+    ["JavaScript", "TypeScript"],
+    ["Apache Kafka", "RabbitMQ", "Amazon SQS", "Apache Pulsar", "Kinesis"],
+    ["Apache Airflow", "Dagster", "Prefect"],
+    ["Snowflake", "BigQuery", "Amazon Redshift", "Databricks", "Data Warehousing"],
+    ["Tableau", "Power BI", "Looker", "Metabase", "Superset"],
+    ["MongoDB", "Couchbase", "CouchDB", "DynamoDB", "Firebase"],
+    ["Redis", "Memcached", "Caching"],
+    ["Elasticsearch", "OpenSearch"],
+    ["Pinecone", "Weaviate", "Milvus", "Qdrant", "pgvector", "ChromaDB", "FAISS", "Vector Databases"],
+    ["LangChain", "LlamaIndex", "RAG", "LLM", "Generative AI", "OpenAI API", "Prompt Engineering"],
+    ["Jest", "Mocha", "Vitest"],
+    ["Selenium", "Cypress", "Playwright", "Test Automation"],
+    ["Figma", "Sketch", "Adobe XD", "Framer"],
+    ["Jira", "Trello", "Asana", "Monday.com"],
+    ["Agile", "Scrum", "Kanban"],
+    ["React Native", "Flutter", "Ionic", "Xamarin", "Expo"],
+    ["iOS", "Swift", "SwiftUI", "Objective-C"],
+    ["Android", "Kotlin", "Jetpack Compose"],
+    ["Prometheus", "Grafana", "Datadog", "New Relic", "Splunk", "ELK Stack", "Observability"],
+    ["Pandas", "Polars", "Dask", "NumPy"],
+    ["Linux", "Unix", "Bash"],
+    ["Tailwind CSS", "Bootstrap", "Material UI", "Chakra UI", "CSS", "Sass"],
+    ["Redux", "Zustand", "MobX"],
+    ["C#", ".NET", "Entity Framework"],
+    ["Salesforce", "HubSpot", "CRM"],
+    ["Unity", "Unreal Engine", "Godot"]
+  ],
+  "certifications": [
+    "AWS Certified Solutions Architect|aws solutions architect", "AWS Certified Developer", "AWS Certified Cloud Practitioner",
+    "AWS Certified DevOps Engineer", "AWS Certified Machine Learning", "Azure Fundamentals|az-900", "Azure Administrator|az-104",
+    "Azure Solutions Architect|az-305", "Azure Developer|az-204", "Google Cloud Professional Cloud Architect|professional cloud architect",
+    "Google Professional Data Engineer|professional data engineer", "Certified Kubernetes Administrator|cka",
+    "Certified Kubernetes Application Developer|ckad", "Terraform Associate", "PMP|project management professional",
+    "Certified ScrumMaster|csm|scrum master certification", "PSM|professional scrum master", "PRINCE2", "CAPM",
+    "CISSP", "CISM", "CISA", "CompTIA Security+|security+", "CompTIA Network+|network+", "CompTIA A+", "CEH|certified ethical hacker",
+    "OSCP", "CCNA", "CCNP", "ITIL", "Six Sigma Green Belt", "Six Sigma Black Belt", "CFA", "CPA", "ACCA",
+    "Oracle Certified Professional|ocp", "Salesforce Certified Administrator", "Google Analytics Certification",
+    "TensorFlow Developer Certificate", "Databricks Certified", "Snowflake SnowPro|snowpro", "Red Hat Certified Engineer|rhce",
+    "Red Hat Certified System Administrator|rhcsa", "Certified Data Scientist", "SHRM-CP", "PHR"
+  ]
+}

@@ -1,0 +1,6 @@
+# Optional, heavier ML dependencies. The app runs without them using a fast
+# built-in hashing embedder + rule-based NLP, but quality is best with these.
+#   pip install -r requirements-ml.txt
+#   python -m spacy download en_core_web_sm
+sentence-transformers>=3.0
+spacy>=3.7

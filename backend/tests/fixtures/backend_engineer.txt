@@ -1,0 +1,28 @@
+Priya Sharma
+Bengaluru, India | priya.sharma@example.com | +91 98765 43210 | linkedin.com/in/priyasharma | github.com/priyasharma
+
+SUMMARY
+Senior Backend Engineer with 6 years of experience building scalable Python microservices on AWS.
+
+EXPERIENCE
+Senior Software Engineer, Nimbus Labs
+Jan 2021 - Present
+• Architected FastAPI microservices serving 2M requests/day with 99.95% uptime
+• Reduced PostgreSQL query latency by 45% through indexing and Redis caching
+• Led migration to Kubernetes on AWS EKS using Terraform and GitHub Actions CI/CD
+• Mentored 5 engineers and drove code review standards
+
+Software Engineer, CodeWorks
+Jun 2018 - Dec 2020
+• Built REST APIs with Django and PostgreSQL for a fintech platform with 300k users
+• Responsible for Docker-based deployment pipelines
+• Implemented Kafka event streaming to decouple billing services
+
+EDUCATION
+B.Tech in Computer Science, IIT Delhi, 2018
+
+SKILLS
+Python, FastAPI, Django, PostgreSQL, Redis, AWS, Docker, Kubernetes, Terraform, Kafka, GraphQL, Git, Linux, Prometheus, Grafana
+
+CERTIFICATIONS
+AWS Certified Solutions Architect

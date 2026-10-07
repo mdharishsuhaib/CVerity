@@ -1,19 +1,8 @@
 "use client";
 import Link from "next/link";
 import { ArrowRight, FileMagnifyingGlass, ListChecks, PencilLine, UsersThree } from "@phosphor-icons/react";
-import { MatchBreakdown, type Match } from "@/components/match";
-import { Panel, Score } from "@/components/ui";
-import { ResumeScanArt } from "@/components/scan-art";
-
-// Sample output rendered with the real breakdown component (illustrative data, not a screenshot).
-const SAMPLE: Match = {
-  score: 84.3, verdict: "Excellent match",
-  components: { semantic: 78.6, skills: 91.2, experience: 100, education: 100, title: 62.4 },
-  matched: ["Python", "FastAPI", "PostgreSQL", "AWS", "Docker", "Kubernetes"],
-  partial: [{ skill: "Redis", via: "Memcached", kind: "related" }],
-  missing_required: [], missing_preferred: ["Terraform"],
-  candidate_years: 6.4, required_years: 5, highlights: [], concerns: [],
-};
+import { HeroMatchArt } from "@/components/hero-art";
+import { ShortlistArt } from "@/components/shortlist-art";
 
 export default function Home() {
   return (
@@ -34,23 +23,13 @@ export default function Home() {
           </div>
         </div>
 
-        <Panel as="figure" className="p-0" aria-label="Example match breakdown">
-          <div className="flex items-center gap-4 border-b border-line p-5">
-            <Score score={SAMPLE.score} size="md" />
-            <div>
-              <p className="font-medium">Senior Backend Engineer</p>
-              <p className="text-sm text-subtle">Nimbus Cloud, Bengaluru</p>
-            </div>
-          </div>
-          <div className="p-5"><MatchBreakdown m={SAMPLE} /></div>
-          <figcaption className="border-t border-line px-5 py-3 text-xs text-subtle">Example output. Every score explains itself.</figcaption>
-        </Panel>
+        <HeroMatchArt className="w-full max-w-xl justify-self-center" />
       </section>
 
       <section className="grid gap-6">
         <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">One upload. Four answers.</h2>
         <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.4fr]">
-          <ResumeScanArt className="w-full max-w-md" />
+          <ShortlistArt className="w-full max-w-md" />
           <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
           {[
             [FileMagnifyingGlass, "Will an ATS read it?", "Eight checks on structure, action verbs, measurable results and formatting, with a fix for each section."],

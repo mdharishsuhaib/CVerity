@@ -10,14 +10,15 @@ services:
     env_file: [.env]
     environment:
       DATABASE_URL: postgresql+psycopg://resume:resume@db:5432/resume
-      CORS_ORIGINS: http://localhost:3000
+      PORT: "8000"
     ports: ["8000:8000"]
     depends_on: { db: { condition: service_healthy } }
 
   web:
     build:
       context: ./frontend
-      args: { BACKEND_URL: http://api:8000 }
+    environment:
+      BACKEND_URL: http://api:8000
     ports: ["3000:3000"]
     depends_on: [api]
 

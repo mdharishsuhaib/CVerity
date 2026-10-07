@@ -133,7 +133,8 @@ async def candidate_events(job_id: int, request: Request, token: str = Query(...
             await asyncio.sleep(1.5)
 
     # Exact "text/event-stream" (no charset) so Cloudflare Tunnel flushes each event immediately.
-    return StreamingResponse(stream(), headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache",
+    # "no-transform" stops proxies (including the Next.js server's gzip) from buffering the stream.
+    return StreamingResponse(stream(), headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform",
                                                 "X-Accel-Buffering": "no", "Connection": "keep-alive"})
 
 

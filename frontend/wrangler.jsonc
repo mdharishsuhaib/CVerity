@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Must match the Worker name in the Cloudflare dashboard (Workers & Pages > your Worker).
+  "name": "cverity",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-07",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "cverity"
+    }
+  ],
+  // Keep variables set in the dashboard (BACKEND_URL) instead of wiping them on every deploy.
+  "keep_vars": true,
+  "observability": {
+    "enabled": true
+  }
+}

@@ -61,10 +61,28 @@
 
 @layer utilities {
   .tabular { font-variant-numeric: tabular-nums; }
-  .scan-band { animation: scan-band 3.2s ease-in-out infinite alternate; }
+  .scan-band { animation: scan-band 4.5s ease-in-out infinite alternate; }
+  .flow { stroke-dasharray: 3 5; animation: flow 1.2s linear infinite; }
+  .hub-pulse { transform-box: fill-box; transform-origin: center; animation: hub-pulse 2.4s ease-out infinite; }
+  .row-in { animation: row-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 }
 
+@keyframes row-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes flow {
+  to { stroke-dashoffset: -16; }
+}
+
+@keyframes hub-pulse {
+  from { transform: scale(1); opacity: 0.6; }
+  to { transform: scale(1.7); opacity: 0; }
+}
+
+/* Sweeps the hero resume from just below the ATS badge (y 68) to the page's bottom edge (y 343) and back. */
 @keyframes scan-band {
   from { transform: translateY(0); }
-  to { transform: translateY(140px); }
+  to { transform: translateY(275px); }
 }

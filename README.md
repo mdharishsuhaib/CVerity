@@ -1,6 +1,8 @@
 # CVerity
 
-**AI-Powered Resume Analyzer and Job Matching System**
+**CVerity: Resume Intelligence and Job Matcher**
+
+An AI-powered resume analyzer and job matching system.
 
 *CV + verity (Latin for "truth"): the truth about how well a resume fits a job.*
 
@@ -47,6 +49,13 @@ CVerity reads a resume the way an Applicant Tracking System (ATS) and a recruite
 ### Quick Match (any logged-in user)
 - **Quick Match** (`/analyze`): upload a resume, paste any job description, and get an instant match breakdown without saving a job.
 
+### Homepage
+- **Hero illustration** (`components/hero-art.tsx`): a resume with an ATS badge is scanned, passes through the CVerity engine, and comes out ranked against three jobs (92, 84, 71).
+- **Recruiter illustration** (`components/shortlist-art.tsx`), beside "One upload. Four answers.": a batch of 12 resumes becomes a ranked shortlist with a CSV export button.
+- Both are hand-built SVGs (no image files to download), so they stay sharp at any size, follow light and dark mode, and animate gently (flowing connectors, pulsing logo, rows sliding in). Animations are disabled when the visitor's system asks for reduced motion. The keyframes live in `app/globals.css`.
+- **Scan animation**: in the hero, the green scan line starts just below the "ATS 88" badge, sweeps down to the bottom edge of the resume page and back (4.5 s each way), and is clipped to the page so it never spills outside. Its soft glow is centred on the line, so the sweep looks identical going down and coming up.
+- **No hover tooltips**: neither illustration shows text when the mouse is over it. Screen readers still get a description through `aria-label` (an SVG `<title>` was avoided on purpose because browsers display it as a tooltip).
+
 ### Demo accounts (created automatically on first start)
 
 | Role | Email | Password |
@@ -54,7 +63,7 @@ CVerity reads a resume the way an Applicant Tracking System (ATS) and a recruite
 | Job seeker | `seeker@demo.com` | `demo12345` |
 | Recruiter | `recruiter@demo.com` | `demo12345` |
 
-16 sample jobs are also loaded from `backend/data/sample_jobs.json`.
+16 sample jobs are also loaded from `backend/data/sample_jobs.json` (for example, "Senior Backend Engineer (Python)" and "Cloud Solutions Architect" at Google, Bengaluru). Seeding only runs while the `jobs` table is empty, so edits to this file do not change jobs already in `backend/data/app.db`. To reload them, delete `app.db` (this also removes your accounts and uploads) or update the rows directly.
 
 ---
 
@@ -70,12 +79,12 @@ CVerity reads a resume the way an Applicant Tracking System (ATS) and a recruite
 | Embeddings | **sentence-transformers** `all-MiniLM-L6-v2` (local, free) | Semantic similarity without paid APIs |
 | Vector search | NumPy cosine top-K index (in memory) | Fast for thousands of jobs, no extra service |
 | LLM (optional) | **Ollama** (local or Ollama Cloud) or **OpenAI**, plus a rule-based fallback | Better feedback when available, never breaks when not |
-| Frontend | **Next.js 14** App Router, React 18, **TypeScript** | Server rendering, file-based routing |
+| Frontend | **Next.js 15** App Router, React 19, **TypeScript** | Server rendering, file-based routing |
 | Styling | **Tailwind CSS**, Geist fonts, Phosphor icons | Consistent design tokens, light and dark themes |
 | Data fetching | **TanStack React Query** | Caching, background refresh, polling |
 | Real time | Server-Sent Events + polling fallback | Live candidate progress without WebSocket infrastructure |
 | Testing | **pytest**, **vitest** | Backend and frontend unit and API tests |
-| Deployment | Docker Compose, Cloudflare Tunnel | One command locally; public URL in seconds |
+| Deployment | Cloudflare Workers (OpenNext) + Hugging Face Spaces, Docker Compose, Cloudflare Tunnel | Free global hosting; one command locally; instant public link |
 
 ---
 
@@ -84,16 +93,19 @@ CVerity reads a resume the way an Applicant Tracking System (ATS) and a recruite
 ```
                  Browser (job seeker / recruiter)
                               |
-                              |  HTTPS (Cloudflare Tunnel when public)
+                              |  HTTPS
                               v
         +-------------------------------------------+
-        |  Next.js 14 frontend  (port 3000)         |
+        |  Next.js 15 frontend                      |
+        |  local: port 3000 | live: Cloudflare Worker|
         |  pages, UI, React Query                   |
-        |  /api/*  --- proxied (rewrite) --------+  |
+        |  /api/*  --- middleware.ts proxy ------+  |
         +----------------------------------------|--+
+                                                 |  BACKEND_URL
                                                  v
         +-------------------------------------------+
-        |  FastAPI backend  (port 8000, 2 workers)  |
+        |  FastAPI backend  (2 workers)             |
+        |  local: port 8000 | live: HF Space (7860) |
         |  rate limit + security headers            |
         |  auth | resumes | jobs | match | recruiter|
         |                  |                        |
@@ -107,7 +119,7 @@ CVerity reads a resume the way an Applicant Tracking System (ATS) and a recruite
 
 **Key design decisions**
 
-- **One public origin.** The browser only ever calls `/api/...` on the frontend's own address. Next.js forwards those calls to FastAPI, so there are no CORS problems and a single tunnel or domain is enough.
+- **One public origin.** The browser only ever calls `/api/...` on the frontend's own address. `frontend/middleware.ts` forwards those calls to FastAPI using `BACKEND_URL`, which is read when the app runs. One build therefore works locally, in Docker and on Cloudflare, with no CORS problems. The proxy also passes each visitor's IP to the backend so rate limits apply per person.
 - **Hybrid AI.** Matching runs entirely on local models (free, private, fast, deterministic). An LLM is used only for writing feedback, and the app falls back to rules if the LLM is missing, slow or out of quota.
 - **Explainable over black-box.** Every score is a weighted sum of named components, and each component shows its evidence.
 - **Background processing.** Bulk uploads return immediately (HTTP 202). Resumes are processed in a background task while the UI shows live progress.
@@ -178,6 +190,8 @@ Grades: **A** 85 or more, **B** 70 or more, **C** 55 or more, **D** 40 or more, 
 ```
 VC/
 |-- .env.example              all settings with comments (copy to .env)
+|-- .gitattributes            consistent line endings on Windows, macOS and Linux
+|-- .gitignore                keeps secrets, databases, resumes and build output out of git
 |-- docker-compose.yml        PostgreSQL + API + web (+ optional local Ollama)
 |-- README.md
 |
@@ -185,7 +199,8 @@ VC/
 |   |-- serve.py              production launcher: create tables, seed once, start N workers
 |   |-- requirements.txt      core dependencies
 |   |-- requirements-ml.txt   optional: sentence-transformers, spaCy (best quality)
-|   |-- Dockerfile
+|   |-- Dockerfile            works with docker compose and Hugging Face Spaces (port 7860)
+|   |-- README.md             Hugging Face Space settings (only used on the Space)
 |   |-- app/
 |   |   |-- main.py           FastAPI app, startup warm-up, middleware, routers, /health
 |   |   |-- schemas.py        Pydantic request and response models
@@ -212,17 +227,26 @@ VC/
 |   `-- tests/                pytest suites + fixture resumes
 |
 `-- frontend/
-    |-- next.config.mjs       /api proxy, security headers, standalone build
+    |-- middleware.ts         /api proxy to FastAPI (reads BACKEND_URL at runtime)
+    |-- next.config.mjs       security headers, standalone build
+    |-- wrangler.jsonc        Cloudflare Worker settings (name: cverity)
+    |-- open-next.config.ts   OpenNext adapter settings for Cloudflare
+    |-- public/_headers       long-term caching for static files on Cloudflare
     |-- tailwind.config.ts    design tokens
     |-- app/
-    |   |-- page.tsx          landing page
+    |   |-- layout.tsx        root layout: fonts, metadata (tab title "CVerity: Resume Intelligence and Job Matcher")
+    |   |-- page.tsx          landing page (hero, "One upload. Four answers.", scoring weights)
+    |   |-- globals.css       theme colours, illustration animations
+    |   |-- icon.svg, favicon.ico, apple-icon.png   tab and home-screen icons (CVerity logo)
     |   |-- login/, register/ auth screens
     |   |-- analyze/          Quick Match (any logged-in user)
     |   |-- seeker/           dashboard + resumes/[id] report (ATS, matches, AI coach)
     |   `-- recruiter/        dashboard + jobs/[id] (ranking, bulk upload, compare, CSV)
-    |-- components/           providers (auth, header), ui kit, match breakdown
+    |-- components/           providers (auth, navbar, footer), ui kit, match breakdown, homepage illustrations (hero-art, shortlist-art)
     `-- lib/                  api client, helpers, tests
 ```
+
+Files that exist only on your computer and are never committed: `.env`, `backend/data/app.db`, `backend/.venv`, `frontend/node_modules`, `frontend/.next`, `frontend/.open-next`, `frontend/.wrangler`, `frontend/.dev.vars`, `.agents/` and `skills-lock.json`.
 
 ---
 
@@ -230,7 +254,7 @@ VC/
 
 ### Prerequisites
 - **Python 3.11 or newer** (tested on 3.13)
-- **Node.js 18 or newer** (20 LTS recommended)
+- **Node.js 22 LTS or newer** (Wrangler, used for Cloudflare deploys, needs Node.js 22+; Next.js 15 alone runs on 20+)
 - About 2 GB of free disk space (PyTorch CPU + the embedding model)
 - Optional: Docker Desktop, an Ollama Cloud or OpenAI key
 
@@ -280,6 +304,20 @@ Open **http://localhost:3000**.
 
 For development with hot reload, use `uvicorn app.main:app --reload --port 8000` in the backend and `npm run dev` in the frontend.
 
+> After changing any frontend code, run `npm run build` again before `npm start`. `npm start` serves the last build.
+
+### Frontend scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Development server with hot reload on port 3000 |
+| `npm run build` / `npm start` | Production build, then serve it on port 3000 |
+| `npm test` | Frontend unit tests (vitest) |
+| `npm run preview` | Build for Cloudflare and run it locally in the real Workers runtime (uses `frontend/.dev.vars`) |
+| `npm run deploy` | Build for Cloudflare and deploy the Worker (needs `npx wrangler login` first) |
+
+For `npm run preview`, create `frontend/.dev.vars` with `BACKEND_URL=http://127.0.0.1:8000`. That file is git-ignored.
+
 ### "Port already in use"
 
 ```bat
@@ -320,7 +358,8 @@ All settings come from `.env` in the project root (see `.env.example` for commen
 | `LLM_TIMEOUT_SECONDS` | `60` | After this, the rule-based fallback is used |
 | `WEIGHT_SEMANTIC` ... `WEIGHT_TITLE` | 0.35 / 0.35 / 0.15 / 0.10 / 0.05 | Match score weights |
 | `NEXT_PUBLIC_API_URL` | (empty) | Leave empty so the browser uses the `/api` proxy |
-| `BACKEND_URL` | `http://127.0.0.1:8000` | Where the `/api` proxy points. Read at **build time**, so rebuild after changing it |
+| `BACKEND_URL` | `http://127.0.0.1:8000` | Where the `/api` proxy points. Read at **runtime**: from your shell or Docker locally, from `frontend/.dev.vars` for `npm run preview`, and as a Worker variable on Cloudflare |
+| `HOST` / `PORT` | `127.0.0.1` / `8000` | Address `serve.py` listens on. The Docker image sets `0.0.0.0` / `7860` for Hugging Face Spaces; docker compose uses port 8000 |
 
 **Ollama Cloud example:**
 
@@ -352,7 +391,34 @@ It prints a `https://<random-words>.trycloudflare.com` address that anyone can o
 - The address changes each time the tunnel restarts.
 - Quick tunnels may buffer Server-Sent Events. The UI then falls back to refreshing every 2 seconds, so progress still updates.
 
-### Option B: permanent hosting
+### Option B: Cloudflare Workers (frontend) + Hugging Face Spaces (backend), free
+
+The frontend is a Next.js app deployed to Cloudflare Workers with the [OpenNext adapter](https://opennext.js.org/cloudflare). The Python backend (PyTorch + AI models) cannot run inside a Worker, so it runs as a Docker Space on Hugging Face. The Worker forwards every `/api/*` request to it (`frontend/middleware.ts`).
+
+**Step 1: deploy the backend on Hugging Face Spaces**
+1. Create a Space at [huggingface.co/new-space](https://huggingface.co/new-space): SDK **Docker**, template **Blank**, hardware **CPU basic (free)**.
+2. Upload everything inside `backend/` to the root of the Space, including `Dockerfile` and `README.md`. Skip `.venv`, `__pycache__` and `data/app.db`.
+3. In the Space, open **Settings > Variables and secrets** and add these **secrets**: `SECRET_KEY` (a long random value), `OLLAMA_API_KEY`. Add these **variables**: `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL=https://ollama.com`, `OLLAMA_MODEL=gpt-oss:20b`, `LLM_TIMEOUT_SECONDS=90`.
+4. Wait for the build, then open `https://<user>-<space>.hf.space/health`. It should return `"status":"ok"`.
+
+**Step 2: deploy the frontend on Cloudflare Workers**
+1. In the Cloudflare dashboard, open your Worker > **Settings > Build** and set:
+   - **Root directory:** `frontend`
+   - **Build command:** `npm ci`
+   - **Deploy command:** `npm run deploy`
+2. Under **Settings > Variables and secrets**, add `BACKEND_URL` = `https://<user>-<space>.hf.space` (no trailing slash).
+3. The Worker name in the dashboard must match `"name"` in `frontend/wrangler.jsonc` (`cverity`).
+4. Push to GitHub. Cloudflare builds and deploys automatically on every push.
+5. Open your Worker URL (`https://cverity.<your-subdomain>.workers.dev`), then check `/api/health` there. It should return the same `"status":"ok"` as the Space.
+
+To deploy from your own computer instead, run `cd frontend`, `npx wrangler login`, then `npm run deploy`. On Windows, OpenNext recommends WSL or CI for best results.
+
+**Free plan notes**
+- The Worker bundle is about 1.0 MiB gzipped, under the 3 MiB free-plan limit.
+- Free Spaces sleep after about 48 hours without visitors; the first request after that takes a minute to wake up.
+- Free Spaces have no persistent disk. The SQLite database resets when the Space restarts (demo users and jobs are re-seeded). For permanent data, set `DATABASE_URL` to a free PostgreSQL database such as [Neon](https://neon.tech).
+
+### Option C: any server with Docker
 - Any VPS or cloud VM: install Docker and run `docker compose up --build -d`, then put a domain and HTTPS in front (Cloudflare, Caddy or Nginx).
 - Use PostgreSQL (`DATABASE_URL`) for many concurrent users, and set a strong `SECRET_KEY`.
 - A named Cloudflare Tunnel gives a fixed domain without opening ports.
@@ -362,7 +428,7 @@ It prints a `https://<random-words>.trycloudflare.com` address that anyone can o
 - SQLite in WAL mode with a 30 second busy timeout, so reads and writes do not block each other.
 - The vector index detects jobs created by other workers and rebuilds itself.
 - Per-IP rate limits on login, registration, uploads and scoring (HTTP 429 with `Retry-After`).
-- Bulk uploads run in the background, with live progress over Server-Sent Events (`/recruiter/jobs/{id}/events`) and polling as a fallback.
+- Bulk uploads run in the background, with live progress over Server-Sent Events (`/recruiter/jobs/{id}/events`) and polling as a fallback. The stream is sent with `Cache-Control: no-cache, no-transform`, so the Next.js server (and any other proxy) does not gzip it. Compressing it would hold events back until the buffer fills, which silently breaks the live updates.
 
 ---
 
@@ -454,8 +520,9 @@ Tests use a separate database (`backend/data/test.db`) and do not touch your rea
 - **Uploaded files are never written to disk.** Only the extracted text is stored.
 - **PII redaction**: emails, phone numbers and profile URLs are removed before text is sent to any LLM.
 - File type and size are validated (PDF, DOCX, TXT, MD up to `MAX_UPLOAD_MB`).
-- Rate limiting per client IP and security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
-- Keep API keys only in `.env`, never in code or in this README.
+- Rate limiting per visitor IP (the `/api` proxy forwards the real IP, so one visitor cannot use up everyone's limit) and security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
+- Keep API keys only in `.env` locally, and in **Variables and secrets** on Hugging Face and Cloudflare. Never put them in code or in this README.
+- `.gitignore` keeps secrets and personal data out of git: `.env` files, private keys and certificates, credential files, databases, uploaded resumes (`*.pdf`, `*.docx`), exported candidate CSVs, logs, `frontend/.dev.vars` and Cloudflare build output.
 
 ---
 
@@ -467,10 +534,19 @@ Tests use a separate database (`backend/data/test.db`) and do not touch your rea
 | First start is slow | The embedding model loads (and downloads on the very first run). Wait for `Application startup complete.` |
 | `/health` shows `"embedding_model": "hashing"` | The ML packages are not installed. Run the optional ML step in section 6 |
 | AI suggestions say "rule-based" | The LLM is off, out of quota (HTTP 429) or timed out. Check `LLM_PROVIDER` and your key; the rest of the app still works |
-| Frontend shows network errors | The backend is not running on port 8000, or `BACKEND_URL` was different at build time. Rebuild with `npm run build` |
+| Frontend shows network errors | The backend is not running, or `BACKEND_URL` points to the wrong address. On Cloudflare, check the Worker variable |
+| Cloudflare: "Could not detect a directory containing static files" | The build is running from the repo root. Set **Root directory** to `frontend` and **Deploy command** to `npm run deploy` (section 8, Option B) |
+| Cloudflare site loads but login fails | `BACKEND_URL` is missing on the Worker, or the Hugging Face Space is asleep or still building. Open `<space-url>/health` to wake it, then retry |
+| Data disappeared on the live site | The free Hugging Face Space restarted and its SQLite database reset. Use PostgreSQL (`DATABASE_URL`) for permanent data |
+| Tab still shows an old icon or title | Rebuild the frontend (`npm run build`), then press `Ctrl + Shift + R`, or close and reopen the tab. Browsers cache tab icons |
+| Frontend changes do not appear | `npm start` serves the last build. Run `npm run build` first |
+| Sample job edits do not appear | Seeding is skipped once jobs exist. See the [demo accounts](#demo-accounts-created-automatically-on-first-start) note on reloading sample jobs |
+| `.next/cache` is large | It is a disposable build cache (can reach about 300 MB). Delete `frontend/.next/cache` any time; it is recreated on the next build |
 | Logged out unexpectedly | `SECRET_KEY` changed or the token expired. Log in again |
 | Scanned (image-only) PDF gives an empty result | There is no text to extract. Export the resume as a text-based PDF or DOCX |
 | `database is locked` | Rare with WAL mode. Restart the backend, or switch to PostgreSQL for heavy use |
+| Backend ignores a code change | Old `serve.py` worker processes can outlive their parent on Windows and keep answering on port 8000. Stop every backend `python.exe` (Task Manager, or `taskkill /F /IM python.exe` if nothing else uses Python), then run `python serve.py` again |
+| Recruiter progress updates only every 2 seconds, with no "live" indicator | The live stream is being buffered. Make sure the backend is current (it sends `no-transform`) and that no proxy between browser and backend compresses `text/event-stream` |
 
 ---
 
@@ -481,6 +557,7 @@ Tests use a separate database (`backend/data/test.db`) and do not touch your rea
 - English resumes work best (taxonomy and NLP are English).
 - The vector index lives in memory. It is fine for thousands of jobs; pgvector or FAISS would be needed for millions.
 - Rate limits are per worker process; Redis would be needed to share them across many servers.
+- On the free Hugging Face plan, the backend sleeps when idle and its SQLite data resets on restart.
 
 **Ideas for next steps**
 - OCR with Tesseract for scanned resumes
@@ -502,10 +579,11 @@ Suggested reading order to understand the project:
 4. `backend/app/services/parser.py`, then `extractor.py`: turning a file into structured data.
 5. `backend/app/services/embeddings.py`, then `matcher.py`: semantic similarity and the scoring formula.
 6. `backend/app/services/ats.py` and `llm.py`: rule-based scoring and safe LLM use with a fallback.
-7. `frontend/lib/api.ts` and `frontend/components/providers.tsx`: how the UI calls the API and keeps login state.
+7. `frontend/lib/api.ts`, `frontend/middleware.ts` and `frontend/components/providers.tsx`: how the UI calls the API through the proxy and keeps login state.
 8. `frontend/app/seeker/resumes/[id]/page.tsx`: a full feature page with tabs, queries and mutations.
+9. `frontend/wrangler.jsonc` and `backend/Dockerfile`: how the same code is packaged for Cloudflare Workers and Hugging Face Spaces.
 
-**Concepts you will practice:** REST API design, JWT auth and role-based access, file parsing, NLP, text embeddings and cosine similarity, explainable scoring, background tasks, Server-Sent Events, React Query caching, Tailwind design tokens, Docker and testing with pytest.
+**Concepts you will practice:** REST API design, JWT auth and role-based access, file parsing, NLP, text embeddings and cosine similarity, explainable scoring, background tasks, Server-Sent Events, React Query caching, Tailwind design tokens, edge deployment with Cloudflare Workers, Docker and testing with pytest.
 
 **Glossary**
 - **ATS (Applicant Tracking System):** software companies use to filter resumes before a human reads them.
@@ -515,7 +593,9 @@ Suggested reading order to understand the project:
 - **JWT:** a signed token that proves who you are without the server storing sessions.
 - **PII:** personally identifiable information (email, phone and so on).
 - **SSE (Server-Sent Events):** a simple one-way stream from server to browser for live updates.
+- **Cloudflare Worker:** code that runs on Cloudflare's servers worldwide, close to each visitor. CVerity's frontend runs as one.
+- **Hugging Face Space:** free hosting for apps and Docker containers. CVerity's backend runs as one.
 
 ---
 
-**CVerity** - built with FastAPI, Next.js, sentence-transformers and spaCy.
+**CVerity © 2026** - built with FastAPI, Next.js, sentence-transformers and spaCy.

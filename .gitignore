@@ -137,6 +137,12 @@ frontend/next-env.d.ts
 *.tsbuildinfo
 coverage/
 
+# Cloudflare Workers build output and local state (.dev.vars holds local secrets)
+.open-next/
+.wrangler/
+.dev.vars
+.dev.vars.*
+
 # =====================================================================
 #  EDITOR / OS / LOCAL TOOLING
 # =====================================================================

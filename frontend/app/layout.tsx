@@ -5,9 +5,9 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: { default: "CVerity: resume intelligence and job matching", template: "%s | CVerity" },
+  title: { default: "CVerity: Resume Intelligence and Job Matcher", template: "%s | CVerity" },
   description: "Score your resume for ATS readiness, see exactly which skills a job needs, and rank candidates with explainable match scores.",
-  openGraph: { title: "CVerity", description: "Resume intelligence and explainable job matching for job seekers and recruiters.", type: "website" },
+  openGraph: { title: "CVerity: Resume Intelligence and Job Matcher", description: "Resume intelligence and explainable job matching for job seekers and recruiters.", type: "website" },
 };
 
 export const viewport: Viewport = {

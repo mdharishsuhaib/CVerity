@@ -21,8 +21,8 @@ LIMITS: list[tuple[str, str, int, int]] = [
 
 
 def client_ip(request: Request) -> str:
-    # Behind Cloudflare Tunnel / Next.js proxy the real client IP arrives in headers.
-    for h in ("cf-connecting-ip", "x-real-ip"):
+    # Behind the Next.js / Cloudflare Worker proxy the real visitor IP arrives in headers.
+    for h in ("x-cverity-client-ip", "cf-connecting-ip", "x-real-ip"):
         if v := request.headers.get(h):
             return v.strip()
     if fwd := request.headers.get("x-forwarded-for"):

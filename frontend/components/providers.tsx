@@ -35,10 +35,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <Ctx.Provider value={{ user, ready, login, logout }}>
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-30 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm">Skip to content</a>
         <Nav />
-        <main id="main" className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 md:px-6">{children}</main>
-        <footer className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 border-t border-line px-4 py-6 text-xs text-subtle md:px-6">
-          <span>CVerity</span>
-          <span>Files are parsed in memory and never stored. Contact details are removed before any text reaches an AI model.</span>
+        <main id="main" className="mx-auto w-full max-w-6xl px-4 pb-8 pt-8 md:px-6">{children}</main>
+        <footer className="flex w-full items-center justify-center border-t border-line px-3 py-6 text-center text-xs text-subtle">
+          <span>CVerity &copy; 2026</span>
         </footer>
       </Ctx.Provider>
     </QueryClientProvider>
@@ -61,7 +60,7 @@ function Nav() {
   const router = useRouter();
   return (
     <header className="sticky top-0 z-20 border-b border-line/80 bg-bg/85 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 md:px-6">
+      <div className="flex h-14 w-full items-center justify-between gap-4 px-3">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <span aria-hidden className="grid h-6 w-6 place-items-center rounded-md bg-accent text-[11px] font-bold text-accent-on">CV</span>
           CVerity

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, FileMagnifyingGlass, ListChecks, PencilLine, UsersThree } from "@phosphor-icons/react";
 import { MatchBreakdown, type Match } from "@/components/match";
 import { Panel, Score } from "@/components/ui";
+import { ResumeScanArt } from "@/components/scan-art";
 
 // Sample output rendered with the real breakdown component (illustrative data, not a screenshot).
 const SAMPLE: Match = {
@@ -16,8 +17,8 @@ const SAMPLE: Match = {
 
 export default function Home() {
   return (
-    <div className="grid gap-24">
-      <section className="grid items-center gap-12 pt-4 lg:grid-cols-[1.05fr_1fr] lg:pt-10">
+    <div className="grid gap-12">
+      <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:pt-4">
         <div>
           <h1 className="max-w-[18ch] text-4xl font-semibold leading-[1.05] tracking-tight md:text-5xl">
             Know why a resume fits a job, not just that it does.
@@ -46,9 +47,11 @@ export default function Home() {
         </Panel>
       </section>
 
-      <section className="grid gap-10 lg:grid-cols-[1fr_1.4fr]">
-        <h2 className="max-w-[16ch] text-2xl font-semibold tracking-tight md:text-3xl">One upload. Four answers.</h2>
-        <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+      <section className="grid gap-6">
+        <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">One upload. Four answers.</h2>
+        <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.4fr]">
+          <ResumeScanArt className="w-full max-w-md" />
+          <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
           {[
             [FileMagnifyingGlass, "Will an ATS read it?", "Eight checks on structure, action verbs, measurable results and formatting, with a fix for each section."],
             [ListChecks, "Which jobs fit?", "Matches rank on meaning, skills, experience, education and title. Skill aliases and related tools count."],
@@ -60,10 +63,11 @@ export default function Home() {
               <dd className="mt-1.5 text-sm leading-relaxed text-muted">{d}</dd>
             </div>
           ))}
-        </dl>
+          </dl>
+        </div>
       </section>
 
-      <section className="rounded-xl bg-sunken p-8 md:p-12">
+      <section className="rounded-xl bg-sunken p-6 md:p-8">
         <div className="grid gap-8 md:grid-cols-3">
           {[
             ["35%", "Semantic fit", "Sentence embeddings compare your experience with the role's responsibilities."],
@@ -73,7 +77,7 @@ export default function Home() {
             <div key={t}>
               <p className="font-mono text-3xl font-semibold tabular text-accent">{w}</p>
               <p className="mt-2 font-medium">{t}</p>
-              <p className="mt-1 text-sm leading-relaxed text-muted">{d}</p>
+              <p className="mt-1 text-wrap text-sm leading-relaxed text-muted">{d}</p>
             </div>
           ))}
         </div>

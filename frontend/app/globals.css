@@ -61,4 +61,10 @@
 
 @layer utilities {
   .tabular { font-variant-numeric: tabular-nums; }
+  .scan-band { animation: scan-band 3.2s ease-in-out infinite alternate; }
+}
+
+@keyframes scan-band {
+  from { transform: translateY(0); }
+  to { transform: translateY(140px); }
 }

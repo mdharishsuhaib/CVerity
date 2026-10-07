@@ -96,7 +96,7 @@ can audit line by line, and ranks many candidates at once.
   must-have skills; compare up to 5 candidates side by side; download the ranking.
 - **Quick Match** -- Score any resume against any pasted job description without saving
   anything (`/analyze`).
-- **Polished, accessible UI** -- Light and dark themes, animated SVG illustrations that
+- **Polished, accessible UI** -- Two colour themes, animated SVG illustrations that
   respect reduced-motion settings, and no distracting hover tooltips.
 
 ---
@@ -216,7 +216,7 @@ CVerity/
 │   │   └── sample_jobs.json     # Starter jobs (e.g. Google, Bengaluru)
 │   ├── tests/                   # pytest suites + fixture resumes
 │   ├── serve.py                 # Production launcher (seed once, N workers)
-│   ├── requirements.txt         # Core dependencies (light mode)
+│   ├── requirements.txt         # Core dependencies
 │   ├── requirements-ml.txt      # Optional: sentence-transformers, spaCy
 │   ├── Dockerfile               # Full ML image (docker compose, paid HF Spaces)
 │   └── README.md                # Hugging Face Space settings (only used on a Space)
@@ -235,7 +235,7 @@ CVerity/
 │   ├── wrangler.jsonc           # Cloudflare Worker settings (name, BACKEND_URL)
 │   ├── open-next.config.ts      # OpenNext adapter for Cloudflare
 │   └── package.json
-├── render.yaml                  # Render Blueprint (backend, light mode)
+├── render.yaml                  # Render Blueprint (backend)
 ├── docker-compose.yml           # PostgreSQL + API + web (+ optional Ollama)
 ├── .env.example                 # All settings documented
 └── README.md
@@ -296,7 +296,7 @@ cd backend
 ```
 
 **Full ML mode (best match quality, optional).** Without these packages CVerity uses its
-built-in hashing embedder and rule-based NLP ("light mode"):
+built-in hashing embedder and rule-based NLP:
 
 ```bat
 pip install torch --index-url https://download.pytorch.org/whl/cpu

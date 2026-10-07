@@ -49,7 +49,6 @@ can audit line by line, and ranks many candidates at once.
 - [Deployment](#deployment)
 - [Running Tests](#running-tests)
 - [Troubleshooting](#troubleshooting)
-- [Limitations and Roadmap](#limitations-and-roadmap)
 - [Learning Guide](#learning-guide)
 - [Tech Stack](#tech-stack)
 
@@ -587,28 +586,6 @@ for /f "tokens=5" %a in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') d
 | Logged out unexpectedly | `SECRET_KEY` changed or the token expired; log in again |
 | Backend ignores a code change (Windows) | Old `serve.py` workers can keep port 8000; stop all backend `python.exe` processes and restart |
 | `frontend/.next/cache` is large | Disposable build cache; delete it any time |
-
----
-
-## Limitations and Roadmap
-
-**Current limitations**
-
-- No OCR, so scanned image PDFs cannot be read.
-- English resumes work best (the taxonomy and NLP are English).
-- The vector index lives in memory: fine for thousands of jobs, not millions.
-- Rate limits are per worker process (Redis would share them across servers).
-- On Render, the backend runs in light mode, sleeps when idle and resets its
-  SQLite data on restart.
-
-**Next steps**
-
-- OCR (Tesseract) for scanned resumes
-- pgvector for database-level similarity search
-- Email notification when a bulk upload finishes
-- Multi-language support
-- Interview questions generated from skill gaps
-- Bias reduction: hide names and photos during ranking
 
 ---
 

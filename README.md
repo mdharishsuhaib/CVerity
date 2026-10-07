@@ -29,18 +29,6 @@ It reads a resume the way an Applicant Tracking System (ATS) and a recruiter wou
 scores the resume, explains exactly what is missing, matches it to jobs with a score you
 can audit line by line, and ranks many candidates at once.
 
-**Try it live** with a demo account (password `demo12345` for both):
-
-| Role | Email |
-|---|---|
-| Job seeker | `seeker@demo.com` |
-| Recruiter | `recruiter@demo.com` |
-
-> The live backend runs on Render's free plan. If nobody has used it for 15 minutes, the
-> first login takes 30 to 60 seconds while it wakes up. The live demo runs in
-> [light mode](#light-mode-on-render) and its data resets when the backend restarts, so
-> please do not upload real personal resumes to it.
-
 ---
 
 ## Table of Contents
@@ -164,7 +152,7 @@ flowchart TD
   the frontend's own address; `middleware.ts` forwards those calls to the backend, so
   there are no CORS problems and one build works locally, in Docker and on Cloudflare.
 - **Backend** -- FastAPI (Python 3.11+). Handles parsing, NLP, scoring, the AI coach and
-  background processing. `serve.py` creates tables, seeds demo data once and starts the
+  background processing. `serve.py` creates tables, seeds the starter jobs once and starts the
   worker processes.
 - **Database** -- SQLite in WAL mode by default (zero setup), or PostgreSQL via
   `DATABASE_URL`. Embeddings are computed once and stored, so matching later is fast.
@@ -214,7 +202,7 @@ CVerity/
 │   ├── app/
 │   │   ├── main.py              # FastAPI app, warm-up, middleware, routers, /health
 │   │   ├── schemas.py           # Pydantic request and response models
-│   │   ├── seed.py              # Demo users + 16 sample jobs
+│   │   ├── seed.py              # Loads the 16 starter jobs on first start
 │   │   ├── core/
 │   │   │   ├── settings.py      # Typed configuration from .env
 │   │   │   ├── db.py            # Engine, sessions, SQLite WAL settings
@@ -233,7 +221,7 @@ CVerity/
 │   │       └── pipeline.py      # Ties everything together
 │   ├── data/
 │   │   ├── skills_taxonomy.json # ~1,500 skills with aliases and related clusters
-│   │   └── sample_jobs.json     # Seed jobs (e.g. Google, Bengaluru)
+│   │   └── sample_jobs.json     # Starter jobs (e.g. Google, Bengaluru)
 │   ├── tests/                   # pytest suites + fixture resumes
 │   ├── serve.py                 # Production launcher (seed once, N workers)
 │   ├── requirements.txt         # Core dependencies (light mode)
@@ -306,8 +294,8 @@ Open:
 - Backend health check: `http://localhost:8000/health`
 - Interactive API docs: `http://localhost:8000/docs`
 
-On first start the backend creates its tables and loads the demo accounts and 16 sample
-jobs automatically. On macOS or Linux, use `cp` instead of `copy` and
+On first start the backend creates its tables and loads 16 starter jobs automatically.
+Register an account at `http://localhost:3000/register` to begin. On macOS or Linux, use `cp` instead of `copy` and
 `source .venv/bin/activate`.
 
 ---
@@ -384,7 +372,7 @@ All backend settings come from `.env` in the project root (see `.env.example`).
 | `SECRET_KEY` | (dev value) | Signs JWT tokens. Use a long random value in production: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `1440` | Login session length (24 hours) |
 | `DATABASE_URL` | `sqlite:///./data/app.db` | Or `postgresql+psycopg://user:pass@host:5432/db` |
-| `AUTO_CREATE_TABLES` / `AUTO_SEED` | `true` | Create tables and load demo data on start |
+| `AUTO_CREATE_TABLES` / `AUTO_SEED` | `true` | Create tables and load the starter jobs on start |
 | `CORS_ORIGINS` | `http://localhost:3000` | Only needed for direct API calls from other sites |
 | `MAX_UPLOAD_MB` | `10` | Maximum resume file size |
 | `EMBEDDING_BACKEND` | `auto` | `auto`, `sentence-transformers` or `hashing` (Render uses `hashing`) |
@@ -460,7 +448,7 @@ Plain liveness check, also used by Render.
 **Example:**
 
 ```bash
-curl -X POST http://localhost:8000/auth/login -d "username=seeker@demo.com&password=demo12345"
+curl -X POST http://localhost:8000/auth/login -d "username=you@example.com&password=<your-password>"
 curl -H "Authorization: Bearer <token>" -F "file=@my_resume.pdf" http://localhost:8000/resumes
 ```
 
@@ -621,7 +609,7 @@ while it wakes up; open `https://cverity-api.onrender.com/health` and wait for i
 
 ### Data disappeared on the live site
 
-The free Render service restarted and its SQLite database reset (demo data is re-seeded).
+The free Render service restarted and its SQLite database reset (the starter jobs are reloaded).
 Use PostgreSQL (`DATABASE_URL`) for permanent data.
 
 ### Cloudflare build: "Could not detect a directory containing static files"

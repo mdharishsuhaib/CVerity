@@ -15,8 +15,13 @@
       "service": "cverity"
     }
   ],
-  // Keep variables set in the dashboard (BACKEND_URL) instead of wiping them on every deploy.
+  // Keep variables set in the dashboard instead of wiping them on every deploy.
   "keep_vars": true,
+  // Runtime variables for the Worker. BACKEND_URL is where /api/* is proxied (the Render backend).
+  // It is not a secret (browsers can see which API they talk to), so it lives here and ships with every deploy.
+  "vars": {
+    "BACKEND_URL": "https://cverity-api.onrender.com"
+  },
   // Serve on https://cverity.<subdomain>.workers.dev and give each non-production upload its own preview URL.
   "workers_dev": true,
   "preview_urls": true,

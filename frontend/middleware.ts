@@ -8,7 +8,7 @@ export function middleware(req: NextRequest) {
   // Say so clearly instead of letting the request fail with an opaque Cloudflare "error code: 1003".
   if (!process.env.BACKEND_URL && req.headers.get("cf-ray")) {
     return NextResponse.json(
-      { detail: "Backend not configured. Set the BACKEND_URL variable on this Cloudflare Worker (Settings > Variables and secrets) to your Render backend URL (for example https://cverity-api.onrender.com)." },
+      { detail: "Backend not configured. Set BACKEND_URL in frontend/wrangler.jsonc (\"vars\") or as a runtime variable on this Cloudflare Worker (Settings > Variables and Secrets) to your Render backend URL, then redeploy." },
       { status: 503 },
     );
   }

@@ -36,10 +36,6 @@ can audit line by line, and ranks many candidates at once.
 | Job seeker | `seeker@demo.com` |
 | Recruiter | `recruiter@demo.com` |
 
-> The live backend runs on Render's free plan. If nobody has used it for 15 minutes, the
-> first login takes 30 to 60 seconds while it wakes up. The live demo runs in
-> [light mode](#light-mode-on-render) and its data resets when the backend restarts, so
-> please do not upload real personal resumes to it.
 
 ---
 

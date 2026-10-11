@@ -28,7 +28,14 @@ services:
         value: hashing
       - key: SECRET_KEY
         generateValue: true
+      # AI coach: Groq (OpenAI-compatible API) first, Ollama Cloud as automatic backup.
       - key: LLM_PROVIDER
+        value: openai
+      - key: OPENAI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: OPENAI_MODEL
+        value: llama-3.3-70b-versatile
+      - key: LLM_FALLBACK_PROVIDER
         value: ollama
       - key: OLLAMA_BASE_URL
         value: https://ollama.com
@@ -36,6 +43,8 @@ services:
         value: gpt-oss:20b
       - key: LLM_TIMEOUT_SECONDS
         value: "90"
-      # Entered in the dashboard when the Blueprint is created; never committed.
+      # Entered in the Render dashboard (Environment); never committed.
+      - key: OPENAI_API_KEY
+        sync: false
       - key: OLLAMA_API_KEY
         sync: false

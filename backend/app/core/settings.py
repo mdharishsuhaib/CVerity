@@ -29,10 +29,11 @@ class Settings(BaseSettings):
     embedding_backend: str = "auto"  # auto | sentence-transformers | hashing
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
-    llm_provider: str = "none"  # none | openai | ollama
+    llm_provider: str = "none"  # none | openai | ollama  ("openai" = any OpenAI-compatible API, e.g. Groq)
+    llm_fallback_provider: str = "none"  # tried automatically when the main provider fails (quota, timeout, outage)
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
-    openai_base_url: str = "https://api.openai.com/v1"
+    openai_base_url: str = "https://api.openai.com/v1"  # Groq: https://api.groq.com/openai/v1
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1"
     ollama_api_key: str = ""  # set for Ollama Cloud (https://ollama.com)

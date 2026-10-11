@@ -162,7 +162,12 @@ function Coach({ id, job, onClearJob }: { id: string; job: { id: number; title: 
       {m.isPending && <div className="grid gap-3"><Skeleton className="h-20" /><Skeleton className="h-32" /></div>}
       {d && !m.isPending && (
         <div className="grid gap-8">
-          {d.llm_error && <p className="rounded-md bg-warn-soft px-3 py-2 text-sm text-warn">The AI model is unavailable right now, so these suggestions come from built-in rules.</p>}
+          {d.llm_error && <p className="rounded-md bg-warn-soft px-3 py-2 text-sm text-warn">{
+            d.llm_error_kind === "quota" ? "The AI service has reached its usage limit, so these suggestions come from built-in rules. Try again later."
+            : d.llm_error_kind === "auth" ? "The AI service key is not valid, so these suggestions come from built-in rules."
+            : d.llm_error_kind === "timeout" ? "The AI service took too long to answer, so these suggestions come from built-in rules. Try again."
+            : "The AI model is unavailable right now, so these suggestions come from built-in rules."
+          }</p>}
           <section>
             <h3 className="mb-2 font-semibold">Summary</h3>
             <p className="max-w-[70ch] rounded-xl bg-surface p-5 leading-relaxed ring-1 ring-line/70">{d.tailored_summary}</p>
@@ -191,7 +196,7 @@ function Coach({ id, job, onClearJob }: { id: string; job: { id: number; title: 
               <ol className="grid list-decimal gap-1.5 pl-5 text-sm text-muted">{d.cover_letter_points.map((t: string) => <li key={t}>{t}</li>)}</ol>
             </section>
           </div>
-          <p className="text-xs text-subtle">Source: {d.source === "rules" ? "built-in rules" : d.source.replace("llm:", "AI model via ")}</p>
+          <p className="text-xs text-subtle">Source: {d.source === "rules" ? "built-in rules" : `AI model via ${({ groq: "Groq", openai: "OpenAI", ollama: "Ollama" } as Record<string, string>)[d.source.replace("llm:", "")] ?? d.source.replace("llm:", "")}`}</p>
         </div>
       )}
     </div>

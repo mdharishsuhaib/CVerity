@@ -67,7 +67,7 @@ can audit line by line, and ranks many candidates at once.
 5. It ranks every open job against the resume with an **explainable match score**:
    matched, close and missing skills, experience fit, education and title, each shown as
    its own number.
-6. The optional **AI coach** (Ollama Cloud or OpenAI) rewrites weak bullet points and
+6. The optional **AI coach** (Groq, OpenAI or Ollama Cloud, with an automatic backup) rewrites weak bullet points and
    writes a summary tailored to one job. Contact details are removed before any text
    reaches the model, and a rule-based coach takes over if the model is unavailable.
 7. **Recruiters** paste a job description (requirements are extracted automatically),
@@ -129,7 +129,7 @@ flowchart TD
     end
 
     subgraph External["External (optional)"]
-        LLM[("Ollama Cloud / OpenAI")]
+        LLM[("Groq / OpenAI / Ollama Cloud")]
     end
 
     UI -- "same-origin /api calls" --> Proxy
@@ -209,7 +209,7 @@ CVerity/
 │   │       ├── embeddings.py    # sentence-transformers or hashing fallback
 │   │       ├── matcher.py       # Scoring engine + vector index
 │   │       ├── ats.py           # 8 ATS checks
-│   │       ├── llm.py           # Ollama / OpenAI / rule-based coach, PII redaction
+│   │       ├── llm.py           # Groq / OpenAI / Ollama (with backup) + rule-based coach, PII redaction
 │   │       └── pipeline.py      # Ties everything together
 │   ├── data/
 │   │   ├── skills_taxonomy.json # ~1,500 skills with aliases and related clusters
@@ -248,7 +248,7 @@ CVerity/
 - **Python 3.11+** (tested on 3.13) for the backend.
 - **Node.js 22+** and `npm` for the frontend (Wrangler needs Node 22).
 - About **2 GB** of disk space for the optional ML packages (PyTorch CPU + model).
-- Optional: an [Ollama Cloud](https://ollama.com) or OpenAI key for the AI coach, and
+- Optional: a [Groq](https://console.groq.com/keys), OpenAI or [Ollama Cloud](https://ollama.com) key for the AI coach, and
   Docker Desktop.
 
 ---
@@ -308,7 +308,13 @@ python -m spacy download en_core_web_sm
 `.env.example`):
 
 ```env
-LLM_PROVIDER=ollama
+# Main AI: any OpenAI-compatible API (for example Groq)
+LLM_PROVIDER=openai
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+OPENAI_MODEL=your-model-here
+OPENAI_API_KEY=your-key-here
+# Optional backup, used automatically when the main AI hits a limit or fails
+LLM_FALLBACK_PROVIDER=ollama
 OLLAMA_BASE_URL=https://ollama.com
 OLLAMA_MODEL=your-model-here
 OLLAMA_API_KEY=your-key-here
@@ -471,7 +477,7 @@ Both redeploy automatically on every push to `main`.
 2. **New > Blueprint**, pick this repository. Render reads `render.yaml` and creates the
    `cverity-api` service (root `backend`, build `pip install -r requirements.txt`, start
    `python serve.py`, health check `/health`).
-3. Paste your `OLLAMA_API_KEY` when asked. `SECRET_KEY` is generated automatically.
+3. Paste your `OPENAI_API_KEY` (Groq key) and `OLLAMA_API_KEY` when asked. `SECRET_KEY` is generated automatically.
 4. After 2 to 4 minutes, `https://cverity-api.onrender.com/health` returns
    `"status":"ok"`.
 
@@ -558,8 +564,9 @@ The build installed the ML packages. Keep the build command as
 
 ### AI suggestions say "rule-based"
 
-The LLM is off, out of quota (HTTP 429) or timed out. Check `LLM_PROVIDER` and your key;
-everything else still works.
+The main AI and the backup are both off, out of quota (HTTP 429) or timed out. The message
+in the app says which: "usage limit", "key is not valid" or "took too long". Check
+`LLM_PROVIDER`, `LLM_FALLBACK_PROVIDER` and the API keys; everything else still works.
 
 ### Recruiter progress updates only every 2 seconds
 
@@ -618,7 +625,7 @@ token that proves who you are. **PII** -- personal information such as email or 
 Next.js 15 · React 19 · TypeScript · Tailwind CSS · TanStack React Query · Phosphor Icons ·
 Python 3.11+ · FastAPI · Uvicorn · SQLAlchemy 2.0 · SQLite / PostgreSQL · PyJWT · bcrypt ·
 pdfplumber · python-docx · spaCy · sentence-transformers · rapidfuzz · NumPy ·
-Ollama Cloud / OpenAI · Server-Sent Events · pytest · vitest · Docker ·
+Groq / OpenAI / Ollama Cloud · Server-Sent Events · pytest · vitest · Docker ·
 Cloudflare Workers (OpenNext) · Render
 
 ---

@@ -34,7 +34,7 @@ services:
       - key: OPENAI_BASE_URL
         value: https://api.groq.com/openai/v1
       - key: OPENAI_MODEL
-        value: llama-3.3-70b-versatile
+        value: openai/gpt-oss-20b
       - key: LLM_FALLBACK_PROVIDER
         value: ollama
       - key: OLLAMA_BASE_URL

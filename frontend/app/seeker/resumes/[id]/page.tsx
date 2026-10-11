@@ -166,6 +166,7 @@ function Coach({ id, job, onClearJob }: { id: string; job: { id: number; title: 
             d.llm_error_kind === "quota" ? "The AI service has reached its usage limit, so these suggestions come from built-in rules. Try again later."
             : d.llm_error_kind === "auth" ? "The AI service key is not valid, so these suggestions come from built-in rules."
             : d.llm_error_kind === "timeout" ? "The AI service took too long to answer, so these suggestions come from built-in rules. Try again."
+            : d.llm_error_kind === "model" ? "The configured AI model is not available, so these suggestions come from built-in rules."
             : "The AI model is unavailable right now, so these suggestions come from built-in rules."
           }</p>}
           <section>

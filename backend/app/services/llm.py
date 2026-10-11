@@ -21,7 +21,8 @@ class LLMError(RuntimeError):
 
 
 def _http_error(provider: str, status: int, body: str) -> LLMError:
-    kind = "quota" if status == 429 else "auth" if status in (401, 403) else "error"
+    kind = ("quota" if status == 429 else "auth" if status in (401, 403)
+            else "model" if status == 404 or "model_not_found" in body else "error")
     return LLMError(f"{provider} error {status}: {body[:200]}", kind)
 
 
@@ -216,7 +217,8 @@ def improve_resume(raw_text: str, profile: dict, ats: dict, job=None, match: dic
     if data is None:
         kinds = {getattr(e, "kind", "error") for e in errors}
         fallback["llm_error"] = "; ".join(str(e) for e in errors)[:300]
-        fallback["llm_error_kind"] = "quota" if kinds == {"quota"} else next(iter(kinds)) if len(kinds) == 1 else "error"
+        # All limited -> "quota"; otherwise report the main AI's reason (the one the owner should fix first).
+        fallback["llm_error_kind"] = "quota" if kinds == {"quota"} else getattr(errors[0], "kind", "error")
         return fallback
     result = {"source": f"llm:{used.label}"}
     for key, default in fallback.items():

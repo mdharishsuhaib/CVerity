@@ -45,19 +45,31 @@ class OpenAIProvider(LLMProvider):
         self.label = "groq" if "groq.com" in s.openai_base_url else "openai"
 
     def complete_json(self, system: str, prompt: str) -> dict:
+        payload = {"model": self.s.openai_model, "temperature": 0.3, "response_format": {"type": "json_object"},
+                   "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]}
+        if "gpt-oss" in self.s.openai_model:
+            # Reasoning model: keep thinking short so the answer itself is not cut off or left empty.
+            payload["reasoning_effort"] = "low"
+        r = self._post(payload)
+        if r.status_code == 400 and "json_validate_failed" in r.text:
+            # Strict JSON mode rejected the output (common with reasoning models). Retry in normal mode;
+            # _parse_json still extracts the JSON object from the reply.
+            payload.pop("response_format", None)
+            r = self._post(payload)
+        if r.status_code >= 400:
+            raise _http_error(self.label, r.status_code, r.text)
+        return _parse_json(r.json()["choices"][0]["message"].get("content") or "")
+
+    def _post(self, payload: dict) -> httpx.Response:
         try:
-            r = httpx.post(
+            return httpx.post(
                 f"{self.s.openai_base_url.rstrip('/')}/chat/completions",
                 headers={"Authorization": f"Bearer {self.s.openai_api_key}"},
-                json={"model": self.s.openai_model, "temperature": 0.3, "response_format": {"type": "json_object"},
-                      "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]},
+                json=payload,
                 timeout=self.s.llm_timeout_seconds,
             )
         except httpx.TimeoutException as exc:
             raise LLMError(f"{self.label} timed out", "timeout") from exc
-        if r.status_code >= 400:
-            raise _http_error(self.label, r.status_code, r.text)
-        return _parse_json(r.json()["choices"][0]["message"]["content"])
 
 
 class OllamaProvider(LLMProvider):

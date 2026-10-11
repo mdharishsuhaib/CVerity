@@ -197,7 +197,6 @@ function Coach({ id, job, onClearJob }: { id: string; job: { id: number; title: 
               <ol className="grid list-decimal gap-1.5 pl-5 text-sm text-muted">{d.cover_letter_points.map((t: string) => <li key={t}>{t}</li>)}</ol>
             </section>
           </div>
-          <p className="text-xs text-subtle">Source: {d.source === "rules" ? "built-in rules" : `AI model via ${({ groq: "Groq", openai: "OpenAI", ollama: "Ollama" } as Record<string, string>)[d.source.replace("llm:", "")] ?? d.source.replace("llm:", "")}`}</p>
         </div>
       )}
     </div>

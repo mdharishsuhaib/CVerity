@@ -79,6 +79,8 @@ backend/data/*.db*
 uploads/
 backend/uploads/
 resumes/
+# ...but never the resume pages of the app itself (source code, not personal data)
+!frontend/app/seeker/resumes/
 my_resume*
 *.pdf
 *.docx

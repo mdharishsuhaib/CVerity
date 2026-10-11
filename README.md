@@ -182,7 +182,7 @@ flowchart TD
 | 7 | ATS parseability | 10 | Clean text, no unusual characters or very long lines, dated roles |
 | 8 | Language quality | 10 | Penalizes weak phrases ("responsible for"), cliches and first-person pronouns |
 
-Grades: **A** 85+, **B** 70+, **C** 55+, **D** 40+, **E** below 40.
+Grades: **A** - 85+, **B** - 70+, **C** - 55+, **D** - 40+, **E** - below 40.
 
 ---
 

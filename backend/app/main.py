@@ -48,7 +48,8 @@ for r in (auth.router, resumes.router, jobs.router, match.router, recruiter.rout
     app.include_router(r)
 
 
-@app.get("/health", tags=["meta"])
+# HEAD is allowed too: uptime monitors such as UptimeRobot check with HEAD requests by default.
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["meta"])
 def health():
     emb = get_embedder()
     return {"status": "ok", "embedding_model": emb.name, "spacy": spacy_available(), "llm": llm_status()}

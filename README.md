@@ -11,7 +11,7 @@
 
 [![GitHub Stars](https://img.shields.io/github/stars/mdharishsuhaib/CVerity?style=flat-square&logo=github&color=1f6feb&label=stars)](https://github.com/mdharishsuhaib/CVerity/stargazers) [![GitHub Forks](https://img.shields.io/github/forks/mdharishsuhaib/CVerity?style=flat-square&logo=github&color=f0883e&label=forks)](https://github.com/mdharishsuhaib/CVerity/network/members)
 
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![Next.js](https://img.shields.io/badge/Frontend-Next.js_15-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/) [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/) [![Cloudflare Workers](https://img.shields.io/badge/Frontend_Hosting-Cloudflare_Workers-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/) [![Render](https://img.shields.io/badge/Backend_Hosting-Render-46E3B7?style=flat-square&logo=render&logoColor=black)](https://render.com/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![Next.js](https://img.shields.io/badge/Frontend-Next.js_15-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/) [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/) [![Cloudflare Workers](https://img.shields.io/badge/Frontend_Hosting-Cloudflare_Workers-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/) [![Render](https://img.shields.io/badge/Backend_Hosting-Render-46E3B7?style=flat-square&logo=render&logoColor=black)](https://render.com/) [![Supabase](https://img.shields.io/badge/Database-Supabase_Postgres-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
 
 </div>
 
@@ -125,7 +125,7 @@ flowchart TD
     end
 
     subgraph Data["Storage"]
-        DB[("SQLite (WAL)<br/>or PostgreSQL")]
+        DB[("Supabase PostgreSQL<br/>(SQLite locally)")]
     end
 
     subgraph External["External (optional)"]
@@ -150,8 +150,9 @@ flowchart TD
 - **Backend** -- FastAPI (Python 3.11+). Handles parsing, NLP, scoring, the AI coach and
   background processing. `serve.py` creates tables, seeds the starter jobs once and starts the
   worker processes.
-- **Database** -- SQLite in WAL mode by default (zero setup), or PostgreSQL via
-  `DATABASE_URL`. Embeddings are computed once and stored, so matching later is fast.
+- **Database** -- PostgreSQL on [Supabase](https://supabase.com) in production (set via
+  `DATABASE_URL`), or SQLite in WAL mode locally (zero setup). Tables are created
+  automatically on startup. Embeddings are computed once and stored, so matching later is fast.
 - **Hybrid AI** -- Matching runs entirely on local models (private, deterministic).
   An LLM is used only to write feedback, and the app never breaks without one.
 
@@ -410,7 +411,7 @@ curl -H "Authorization: Bearer <token>" -F "file=@my_resume.pdf" http://localhos
 
 ## Database Schema
 
-SQLAlchemy 2.0 on SQLite (WAL mode, 30 second busy timeout) or PostgreSQL. Every query
+SQLAlchemy 2.0 on PostgreSQL (Supabase) or SQLite (WAL mode, 30 second busy timeout). Every query
 is scoped to the signed-in user, so seekers see only their resumes and recruiters only
 their own jobs and candidates.
 
@@ -468,8 +469,17 @@ results.
 
 **Live setup:** frontend on **Cloudflare Workers** ->
 [cverity.mdharishsuhaib.workers.dev](https://cverity.mdharishsuhaib.workers.dev), backend
-on **Render** -> [cverity-api.onrender.com](https://cverity-api.onrender.com/health).
-Both redeploy automatically on every push to `main`.
+on **Render** -> [cverity-api.onrender.com](https://cverity-api.onrender.com/health), database on
+**Supabase** (PostgreSQL). Frontend and backend redeploy automatically on every push to `main`.
+
+### Database -> Supabase (PostgreSQL)
+
+1. Create a project at [supabase.com](https://supabase.com) and save its database password.
+2. Click **Connect**, choose **Session pooler**, and copy the connection string. Replace
+   `[YOUR-PASSWORD]` with your password (special characters such as `@` or `%` are fine; the
+   backend encodes them).
+3. On Render, set `DATABASE_URL` to that string. The tables are created automatically on the
+   next start, and the starter jobs are loaded once.
 
 ### Backend -> Render (web service)
 
@@ -549,8 +559,9 @@ while it wakes up; open `https://cverity-api.onrender.com/health` and wait for i
 
 ### Data disappeared on the live site
 
-The Render service restarted and its SQLite database reset (the starter jobs are reloaded).
-Use PostgreSQL (`DATABASE_URL`) for permanent data.
+`DATABASE_URL` is not set on Render, so the backend used a temporary SQLite file, which Render
+deletes on every restart. Set `DATABASE_URL` to your Supabase connection string (see
+[Deployment](#deployment)).
 
 ### Cloudflare build: "Could not detect a directory containing static files"
 
@@ -623,7 +634,7 @@ token that proves who you are. **PII** -- personal information such as email or 
 ## Tech Stack
 
 Next.js 15 · React 19 · TypeScript · Tailwind CSS · TanStack React Query · Phosphor Icons ·
-Python 3.11+ · FastAPI · Uvicorn · SQLAlchemy 2.0 · SQLite / PostgreSQL · PyJWT · bcrypt ·
+Python 3.11+ · FastAPI · Uvicorn · SQLAlchemy 2.0 · Supabase (PostgreSQL) / SQLite · PyJWT · bcrypt ·
 pdfplumber · python-docx · spaCy · sentence-transformers · rapidfuzz · NumPy ·
 Groq / OpenAI / Ollama Cloud · Server-Sent Events · pytest · vitest · Docker ·
 Cloudflare Workers (OpenNext) · Render

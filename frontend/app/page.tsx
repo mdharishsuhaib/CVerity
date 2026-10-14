@@ -19,7 +19,7 @@ export default function Home() {
             <Link href="/register" className="inline-flex h-11 items-center gap-2 rounded-md bg-accent px-5 font-medium text-accent-on transition hover:bg-accent-hover active:translate-y-px">
               Create account <ArrowRight size={16} weight="bold" />
             </Link>
-            <Link href="/login" className="inline-flex h-11 items-center rounded-md px-4 font-medium text-muted transition hover:text-ink">Try a demo account</Link>
+            <Link href="/login" className="inline-flex h-11 items-center rounded-md px-4 font-medium text-muted transition hover:text-ink">Log in</Link>
           </div>
         </div>
 

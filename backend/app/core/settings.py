@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
 
     database_url: str = f"sqlite:///{(DATA_DIR / 'app.db').as_posix()}"
+    db_pool_size: int = 5  # per worker; keep small for hosted Postgres plans (e.g. Supabase)
+    db_max_overflow: int = 5
     auto_create_tables: bool = True
     auto_seed: bool = True
 

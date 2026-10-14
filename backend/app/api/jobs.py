@@ -16,9 +16,9 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 class JobIn(BaseModel):
     title: str = Field(min_length=2, max_length=255)
-    company: str = ""
-    location: str = ""
-    employment_type: str = "Full-time"
+    company: str = Field(default="", max_length=255)
+    location: str = Field(default="", max_length=255)
+    employment_type: str = Field(default="Full-time", max_length=50)
     description: str = Field(min_length=20)
     required_skills: list[str] = []
     preferred_skills: list[str] = []

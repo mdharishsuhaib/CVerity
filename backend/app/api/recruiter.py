@@ -47,7 +47,7 @@ async def bulk_upload(job_id: int, background: BackgroundTasks, files: list[Uplo
     limit = get_settings().max_upload_mb * 1024 * 1024
     accepted, rejected, batch = [], [], []
     for f in files:
-        name = f.filename or "resume"
+        name = (f.filename or "resume")[:255]
         data = await f.read()
         if not name.lower().endswith(ALLOWED_EXT) or not data or len(data) > limit:
             rejected.append({"filename": name, "reason": "unsupported, empty or too large"})

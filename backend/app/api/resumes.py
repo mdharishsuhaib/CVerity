@@ -14,7 +14,7 @@ router = APIRouter(prefix="/resumes", tags=["resumes"])
 @router.post("", status_code=201)
 async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     data = await read_upload(file)
-    resume = Resume(owner_id=user.id, filename=file.filename or "resume")
+    resume = Resume(owner_id=user.id, filename=(file.filename or "resume")[:255])
     db.add(resume)
     db.commit()
     process_resume(db, resume, data)  # single file: synchronous so the report is immediately available

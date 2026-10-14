@@ -21,7 +21,7 @@ def analyze_resume_bytes(data: bytes, filename: str) -> dict:
     ats = analyze_ats(text, sections, profile)
     embeddings = embed_documents(resume_fields(profile, sections, text))
     return {"raw_text": text, "sections": sections, "profile": profile, "ats": ats, "embeddings": embeddings,
-            "candidate_name": contact.get("name") or ""}
+            "candidate_name": (contact.get("name") or "")[:255]}
 
 
 def process_resume(db: Session, resume: Resume, data: bytes) -> Resume:

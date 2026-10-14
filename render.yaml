@@ -44,6 +44,10 @@ services:
       - key: LLM_TIMEOUT_SECONDS
         value: "90"
       # Entered in the Render dashboard (Environment); never committed.
+      # DATABASE_URL: Supabase connection string (Connect > Session pooler). Without it the app falls back
+      # to a local SQLite file, which Render deletes on every restart.
+      - key: DATABASE_URL
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: OLLAMA_API_KEY

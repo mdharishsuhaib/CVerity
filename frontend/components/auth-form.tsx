@@ -62,16 +62,6 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         <ErrorNote error={err} />
         <Button className="w-full" disabled={busy}>{busy ? "One moment..." : isLogin ? "Log in" : "Create account"}</Button>
       </form>
-      {isLogin && (
-        <div className="rounded-xl bg-sunken p-4 text-sm">
-          <p className="font-medium">Demo accounts</p>
-          <p className="mt-1 text-muted">Password for both: <code className="font-mono text-ink">demo12345</code></p>
-          <div className="mt-3 flex gap-2">
-            <Button type="button" size="sm" variant="secondary" onClick={() => setF({ ...f, email: "seeker@demo.com", password: "demo12345" })}>Use job seeker</Button>
-            <Button type="button" size="sm" variant="secondary" onClick={() => setF({ ...f, email: "recruiter@demo.com", password: "demo12345" })}>Use recruiter</Button>
-          </div>
-        </div>
-      )}
       <p className="text-sm text-muted">
         {isLogin ? <>New here? <Link className="font-medium text-accent hover:underline" href="/register">Create account</Link></> : <>Already registered? <Link className="font-medium text-accent hover:underline" href="/login">Log in</Link></>}
       </p>

@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CaretDown, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
-import { API_URL, api, download, getToken } from "@/lib/api";
+import { API_URL, api, download } from "@/lib/api";
 import { cn, scoreColor } from "@/lib/utils";
 import { RequireAuth } from "@/components/providers";
 import { Button, ErrorNote, Field, Input, ListSkeleton, Panel, Tag } from "@/components/ui";
@@ -41,9 +41,9 @@ function JobDetail() {
   const [live, setLive] = useState(false);
   useEffect(() => {
     if (!processing && !up.isPending) return;
-    const token = getToken();
-    if (!token || typeof EventSource === "undefined") return;
-    const es = new EventSource(`${API_URL}/recruiter/jobs/${id}/events?token=${encodeURIComponent(token)}`);
+    if (typeof EventSource === "undefined") return;
+    // Same-origin EventSource sends the HttpOnly session cookie automatically: no token in the URL (or in logs).
+    const es = new EventSource(`${API_URL}/recruiter/jobs/${id}/events`, { withCredentials: true });
     es.addEventListener("progress", () => {
       setLive(true);
       qc.invalidateQueries({ queryKey: ["cands", id] });

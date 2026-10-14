@@ -15,8 +15,12 @@ def setup_module():
         seed(db)
 
 
+PW = "sunlit harbor maple 42"
+
+
 def _auth(c, email, role):
-    r = c.post("/auth/register", json={"email": email, "password": "password123", "full_name": "T", "role": role})
+    r = c.post("/auth/register", json={"email": email, "password": PW, "confirm_password": PW, "full_name": "Test User",
+                                       "role": role}, headers={"x-cverity-csrf": "1"})
     assert r.status_code == 201, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
@@ -27,7 +31,9 @@ def test_full_flow():
         rec = _auth(c, "r@test.com", "recruiter")
 
         # login works
-        assert c.post("/auth/login", data={"username": "s@test.com", "password": "password123"}).status_code == 200
+        assert c.post("/auth/login", data={"username": "s@test.com", "password": PW},
+                      headers={"x-cverity-csrf": "1"}).status_code == 200
+        c.cookies.clear()  # the remaining checks use explicit Bearer headers
         assert c.get("/resumes").status_code == 401
 
         # seeker uploads resume

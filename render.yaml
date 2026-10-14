@@ -52,3 +52,12 @@ services:
         sync: false
       - key: OLLAMA_API_KEY
         sync: false
+      # Email verification + password reset. Verification is enforced automatically once a key is set.
+      # BREVO_API_KEY (https://brevo.com): sends from a verified Gmail sender, no domain needed.
+      # EMAIL_FROM: e.g. "CVerity <you@gmail.com>" (must be the verified sender). FRONTEND_URL builds the links.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

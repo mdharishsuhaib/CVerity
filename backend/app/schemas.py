@@ -3,7 +3,8 @@ from app.models import Job, Resume, User
 
 
 def user_out(u: User) -> dict:
-    return {"id": u.id, "email": u.email, "full_name": u.full_name, "role": u.role}
+    return {"id": u.id, "email": u.email, "full_name": u.full_name, "role": u.role,
+            "email_verified": bool(u.email_verified)}
 
 
 def job_out(j: Job, full: bool = True) -> dict:

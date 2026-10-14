@@ -3,11 +3,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@/lib/api";
+import { User, api, readProfile, saveProfile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type AuthCtx = { user: User | null; ready: boolean; login: (token: string, user: User) => void; logout: () => void };
-const Ctx = createContext<AuthCtx>({ user: null, ready: false, login: () => {}, logout: () => {} });
+type AuthCtx = { user: User | null; ready: boolean; login: (user: User) => void; logout: () => Promise<void> };
+const Ctx = createContext<AuthCtx>({ user: null, ready: false, login: () => {}, logout: async () => {} });
 export const useAuth = () => useContext(Ctx);
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -15,18 +15,28 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    const u = localStorage.getItem("user");
-    if (u && localStorage.getItem("token")) setUser(JSON.parse(u));
-    setReady(true);
+    // Show the cached profile at once, then confirm the session cookie is still valid with the server.
+    const cached = readProfile();
+    if (cached) {
+      setUser(cached);
+      setReady(true);
+    }
+    api<User>("/auth/me")
+      .then((u) => { setUser(u); saveProfile(u); })
+      .catch((e) => {
+        if (e?.status === 401) { setUser(null); saveProfile(null); } // expired, logged out elsewhere, or password changed
+      })
+      .finally(() => setReady(true));
   }, []);
-  const login = (token: string, u: User) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(u));
+  const login = (u: User) => {
+    saveProfile(u);
     setUser(u);
   };
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const logout = async () => {
+    try {
+      await api("/auth/logout", { method: "POST" });
+    } catch {}
+    saveProfile(null);
     setUser(null);
     qc.clear();
   };
@@ -65,19 +75,19 @@ function Nav() {
           <span aria-hidden className="grid h-6 w-6 place-items-center rounded-md bg-accent text-[11px] font-bold text-accent-on">CV</span>
           CVerity
         </Link>
-        <nav aria-label="Primary" className="flex items-center gap-1 text-sm">
+        <nav aria-label="Primary" className="flex min-w-0 items-center gap-1 text-sm">
           {user ? (
             <>
               <NavLink href={user.role === "recruiter" ? "/recruiter" : "/seeker"}>{user.role === "recruiter" ? "Jobs" : "Resumes"}</NavLink>
               <NavLink href="/analyze">Quick match</NavLink>
               <span className="mx-2 hidden h-4 w-px bg-line sm:block" />
-              <span className="hidden max-w-[16ch] truncate text-subtle sm:inline" title={user.email}>{user.full_name || user.email}</span>
-              <button onClick={() => { logout(); router.push("/"); }} className="rounded-md px-2.5 py-1.5 text-muted transition-colors hover:text-ink">Log out</button>
+              <Link href="/account" className="hidden max-w-[16ch] truncate rounded-md px-2.5 py-1.5 text-subtle transition-colors hover:text-ink sm:inline" title={`${user.email}: account settings`}>{user.full_name || user.email}</Link>
+              <button onClick={async () => { await logout(); router.push("/"); }} className="rounded-md px-2.5 py-1.5 text-muted transition-colors hover:text-ink">Log out</button>
             </>
           ) : (
             <>
-              <NavLink href="/login">Log in</NavLink>
-              <Link href="/register" className="ml-1 rounded-md bg-accent px-3 py-1.5 font-medium text-accent-on transition hover:bg-accent-hover active:translate-y-px">Create account</Link>
+              <a href="/#features" className="whitespace-nowrap rounded-md px-2.5 py-1.5 text-muted transition-colors hover:text-ink">Features</a>
+              <a href="/#scoring" className="whitespace-nowrap rounded-md px-2.5 py-1.5 text-muted transition-colors hover:text-ink">How it works</a>
             </>
           )}
         </nav>

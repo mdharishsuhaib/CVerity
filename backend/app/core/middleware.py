@@ -13,11 +13,19 @@ from starlette.responses import JSONResponse
 LIMITS: list[tuple[str, str, int, int]] = [
     ("POST", "/auth/login", 10, 60),
     ("POST", "/auth/register", 5, 300),
+    ("POST", "/auth/verify-email", 10, 300),
+    ("POST", "/auth/resend-verification", 3, 300),
+    ("POST", "/auth/forgot-password", 3, 300),
+    ("POST", "/auth/reset-password", 10, 300),
+    ("POST", "/auth/change-password", 5, 300),
     ("POST", "/resumes", 20, 300),
     ("POST", "/recruiter/jobs/", 10, 300),
     ("POST", "/match/score", 30, 300),
     ("POST", "/jobs", 30, 300),
 ]
+
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+CSRF_HEADER = "x-cverity-csrf"
 
 
 def client_ip(request: Request) -> str:
@@ -35,14 +43,32 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.hits: dict[tuple[str, str], deque] = defaultdict(deque)
         self.lock = threading.Lock()
+        self._last_sweep = time.monotonic()
+
+    def _sweep(self, now: float) -> None:
+        # Drop visitors with no recent requests so memory stays flat however many IPs arrive.
+        if now - self._last_sweep < 60:
+            return
+        self._last_sweep = now
+        longest = max(w for *_, w in LIMITS)
+        for key in [k for k, q in self.hits.items() if not q or now - q[-1] > longest]:
+            del self.hits[key]
 
     async def dispatch(self, request: Request, call_next):
+        # CSRF: browsers attach the session cookie to cross-site requests, but other sites cannot add a
+        # custom header without passing CORS. So any state-changing request must carry it.
+        # (Bearer-token API clients aren't exposed to CSRF and are exempt.)
+        if (request.method not in SAFE_METHODS and not request.headers.get("authorization")
+                and request.headers.get(CSRF_HEADER) != "1"):
+            return JSONResponse({"detail": "Request blocked by CSRF protection. Please reload the page and try again."},
+                                status_code=403)
         rule = next(((p, n, w) for m, p, n, w in LIMITS if request.method == m and request.url.path.startswith(p)), None)
         if rule:
             prefix, limit, window = rule
             key = (client_ip(request), prefix)
             now = time.monotonic()
             with self.lock:
+                self._sweep(now)
                 q = self.hits[key]
                 while q and now - q[0] > window:
                     q.popleft()
@@ -55,4 +81,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        if request.url.path.startswith("/auth"):
+            response.headers.setdefault("Cache-Control", "no-store")  # never cache auth responses
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        if request.headers.get("x-forwarded-proto", request.url.scheme) == "https":
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return response

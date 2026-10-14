@@ -26,7 +26,7 @@ export default function Home() {
         <HeroMatchArt className="w-full max-w-xl justify-self-center" />
       </section>
 
-      <section className="grid gap-6">
+      <section id="features" className="grid scroll-mt-24 gap-6">
         <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">One upload. Four answers.</h2>
         <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.4fr]">
           <ShortlistArt className="w-full max-w-md" />
@@ -46,7 +46,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="rounded-xl bg-sunken p-6 md:p-8">
+      <section id="scoring" className="scroll-mt-24 rounded-xl bg-sunken p-6 md:p-8">
         <div className="grid gap-8 md:grid-cols-3">
           {[
             ["35%", "Semantic fit", "Sentence embeddings compare your experience with the role's responsibilities."],

@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, UploadFile, status
+from fastapi import Depends, HTTPException, Request, UploadFile, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -11,13 +11,24 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 ALLOWED_EXT = (".pdf", ".docx", ".txt", ".md")
 
 
-def get_current_user(token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+def user_from_token(db: Session, token: str | None) -> User | None:
     payload = decode_token(token) if token else None
-    if not payload:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated", headers={"WWW-Authenticate": "Bearer"})
+    if not payload or not str(payload.get("sub", "")).isdigit():
+        return None
     user = db.get(User, int(payload["sub"]))
+    # A password change/reset bumps session_version, which ends every older session.
+    if not user or payload.get("ver", 0) != (user.session_version or 0):
+        return None
+    if get_settings().email_enabled and not user.email_verified:
+        return None
+    return user
+
+
+def get_current_user(request: Request, bearer: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+    token = bearer or request.cookies.get(get_settings().session_cookie_name)
+    user = user_from_token(db, token)
     if not user:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated", headers={"WWW-Authenticate": "Bearer"})
     return user
 
 
@@ -52,7 +63,7 @@ async def read_upload(file: UploadFile) -> bytes:
     name = (file.filename or "").lower()
     if not name.endswith(ALLOWED_EXT):
         raise HTTPException(415, f"Unsupported file '{file.filename}'. Use PDF, DOCX or TXT.")
-    data = await file.read()
+    data = await file.read(get_settings().max_upload_mb * 1024 * 1024 + 1)
     if len(data) > get_settings().max_upload_mb * 1024 * 1024:
         raise HTTPException(413, f"File exceeds {get_settings().max_upload_mb} MB")
     if not data:

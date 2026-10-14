@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -18,10 +18,31 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), default="")
     hashed_password: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(20), default="seeker")  # seeker | recruiter
+    failed_logins: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # server_default "1": accounts that existed before verification was added count as verified.
+    # New signups are created with email_verified=False explicitly.
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="1")
+    # Bumped on password change/reset: every login token issued before that stops working.
+    session_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     resumes: Mapped[list["Resume"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     jobs: Mapped[list["Job"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+    tokens: Mapped[list["AuthToken"]] = relationship(cascade="all, delete-orphan")
+
+
+class AuthToken(Base):
+    """One-time email token (verify email / reset password). Only a SHA-256 hash is stored."""
+    __tablename__ = "auth_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    purpose: Mapped[str] = mapped_column(String(20))  # verify | reset
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Job(Base):

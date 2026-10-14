@@ -10,10 +10,11 @@ import uvicorn
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    from app.core.db import Base, SessionLocal, engine
+    from app.core.db import SessionLocal
+    from app.core.migrate import prepare_database
     from app.seed import seed
 
-    Base.metadata.create_all(bind=engine)
+    prepare_database()  # tables, new columns, interrupted uploads
     with SessionLocal() as db:
         seed(db)  # single process, so workers never race on seeding
     os.environ["AUTO_SEED"] = "false"

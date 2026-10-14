@@ -10,10 +10,9 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.api.deps import ALLOWED_EXT, owned_job, require_recruiter
+from app.api.deps import ALLOWED_EXT, owned_job, require_recruiter, user_from_token
 from app.api.match import rank_candidates
 from app.core.db import SessionLocal, get_db
-from app.core.security import decode_token
 from app.core.settings import get_settings
 from app.models import Job, MatchResult, Resume, User
 from app.schemas import resume_full, resume_summary
@@ -45,13 +44,23 @@ async def bulk_upload(job_id: int, background: BackgroundTasks, files: list[Uplo
     if len(files) > MAX_BULK:
         raise HTTPException(400, f"Upload at most {MAX_BULK} files at once")
     limit = get_settings().max_upload_mb * 1024 * 1024
+    total_limit = get_settings().bulk_max_total_mb * 1024 * 1024
+    total = 0
     accepted, rejected, batch = [], [], []
     for f in files:
         name = (f.filename or "resume")[:255]
-        data = await f.read()
-        if not name.lower().endswith(ALLOWED_EXT) or not data or len(data) > limit:
-            rejected.append({"filename": name, "reason": "unsupported, empty or too large"})
+        if not name.lower().endswith(ALLOWED_EXT):
+            rejected.append({"filename": name, "reason": "unsupported file type"})
             continue
+        # Read one byte past the limit: enough to detect an oversized file without loading all of it.
+        data = await f.read(limit + 1)
+        if not data or len(data) > limit:
+            rejected.append({"filename": name, "reason": "empty or too large"})
+            continue
+        if total + len(data) > total_limit:
+            rejected.append({"filename": name, "reason": f"batch over {get_settings().bulk_max_total_mb} MB, upload it separately"})
+            continue
+        total += len(data)
         r = Resume(owner_id=user.id, job_id=job.id, filename=name, status="pending")
         db.add(r)
         db.flush()
@@ -98,11 +107,11 @@ def compare(job_id: int, ids: str = Query(..., description="comma-separated resu
 
 
 @router.get("/jobs/{job_id}/events")
-async def candidate_events(job_id: int, request: Request, token: str = Query(...)):
-    """Server-Sent Events: pushes candidate processing progress for a job in real time."""
-    payload = decode_token(token)
+async def candidate_events(job_id: int, request: Request, token: str | None = Query(None)):
+    """Server-Sent Events: pushes candidate processing progress for a job in real time.
+    EventSource sends the session cookie automatically; ?token= remains for API clients."""
     with SessionLocal() as db:
-        user = db.get(User, int(payload["sub"])) if payload else None
+        user = user_from_token(db, request.cookies.get(get_settings().session_cookie_name) or token)
         job = db.get(Job, job_id)
         if not user or user.role != "recruiter":
             raise HTTPException(401, "Not authenticated")

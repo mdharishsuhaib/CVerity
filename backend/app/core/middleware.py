@@ -81,8 +81,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-        if request.url.path.startswith("/auth"):
-            response.headers.setdefault("Cache-Control", "no-store")  # never cache auth responses
+        # Every API response is per-user data (resumes, candidate CSVs, scores). "private, no-store" stops any shared
+        # cache, notably Cloudflare's, which caches .csv URLs by default and ignores who is logged in, from ever
+        # storing one user's response and serving it to someone else. The response varies by login cookie, too.
+        response.headers["Cache-Control"] = "private, no-store, max-age=0"
+        response.headers["Vary"] = ", ".join(dict.fromkeys(
+            [v.strip() for v in response.headers.get("Vary", "").split(",") if v.strip()] + ["Cookie", "Authorization"]))
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         if request.headers.get("x-forwarded-proto", request.url.scheme) == "https":
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")

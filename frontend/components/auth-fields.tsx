@@ -1,8 +1,10 @@
 "use client";
+import Link from "next/link";
 import React, { useState } from "react";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/providers";
 import { Field, Input } from "@/components/ui";
 
 /** Password input with show/hide and Caps Lock warning. Paste and password-manager autofill stay enabled. */
@@ -87,10 +89,18 @@ export function Notice({ children, tone = "neutral" }: { children: React.ReactNo
   );
 }
 
-export function AuthShell({ title, sub, children }: { title: string; sub?: React.ReactNode; children?: React.ReactNode }) {
+export function AuthShell({ title, sub, children, brand }: {
+  title: string; sub?: React.ReactNode; children?: React.ReactNode; brand?: boolean;
+}) {
   return (
     <div className="mx-auto grid max-w-sm gap-8 pt-6">
       <div>
+        {brand && (
+          <Link href="/" aria-label="CVerity home" className="mb-8 inline-flex items-center gap-2.5 text-lg font-semibold tracking-tight">
+            <BrandMark className="h-8 w-8 text-sm" />
+            CVerity
+          </Link>
+        )}
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
       </div>

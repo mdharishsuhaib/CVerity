@@ -81,7 +81,7 @@ export function RegisterForm() {
   if (sentTo) return <CheckInbox email={sentTo} />;
 
   return (
-    <AuthShell title="Create your account" sub="Free. No credit card needed.">
+    <AuthShell brand title="Create your account" sub="Free. No credit card needed.">
       <form onSubmit={submit} className="grid gap-4" noValidate>
         <Field label="Full name" error={f.shown("full_name", errors.full_name)}>
           <Input ref={refs.full_name} autoComplete="name" maxLength={NAME_MAX + 50} value={full_name} placeholder="Mohammed Haris Suhaib"
@@ -168,7 +168,7 @@ export function LoginForm() {
 
   if (weakPw) {
     return (
-      <AuthShell title="Update your password" sub="You're logged in.">
+      <AuthShell brand title="Update your password" sub="You're logged in.">
         <Notice>Your password is shorter or simpler than our current rules allow for new accounts. Please choose a stronger one to keep your account safe.</Notice>
         <div className="flex flex-wrap gap-3">
           <Button onClick={() => router.push("/account")}>Update password</Button>
@@ -179,7 +179,7 @@ export function LoginForm() {
   }
 
   return (
-    <AuthShell title="Log in" sub="Pick up where you left off.">
+    <AuthShell brand title="Log in" sub="Pick up where you left off.">
       {notice && !f.formErr && <Notice>{notice}</Notice>}
       <form onSubmit={submit} className="grid gap-4" noValidate>
         <EmailField value={email} onChange={(v) => f.set("email", v)} onBlur={() => f.blur("email")}
@@ -200,7 +200,7 @@ export function LoginForm() {
 
 function CheckInbox({ email }: { email: string }) {
   return (
-    <AuthShell title="Check your inbox" sub="One last step to activate your account.">
+    <AuthShell brand title="Check your inbox" sub="One last step to activate your account.">
       <Notice tone="good">
         We sent a verification link to <strong className="font-medium">{email}</strong>. Open it to activate your account. The link works once and expires in 24 hours.
       </Notice>

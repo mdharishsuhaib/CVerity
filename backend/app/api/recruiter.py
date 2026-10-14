@@ -147,7 +147,9 @@ async def candidate_events(job_id: int, request: Request, token: str | None = Qu
                                                 "X-Accel-Buffering": "no", "Connection": "keep-alive"})
 
 
-@router.get("/jobs/{job_id}/export.csv")
+# No ".csv" in the URL on purpose: Cloudflare caches URLs by file extension by default (ignoring who is logged in),
+# which once let a cached recruiter export be served to other users. Responses are also marked private/no-store.
+@router.get("/jobs/{job_id}/export")
 def export_csv(job_id: int, min_score: float = 0, db: Session = Depends(get_db), user: User = Depends(require_recruiter)):
     job = owned_job(db, job_id, user)
     rows = rank_candidates(db, job, min_score=min_score)

@@ -72,7 +72,7 @@ function JobDetail() {
         <div className="flex flex-wrap gap-2">
           <input ref={input} type="file" multiple accept=".pdf,.docx,.txt" hidden onChange={(e) => { if (e.target.files?.length) up.mutate(e.target.files); e.target.value = ""; }} />
           <Button onClick={() => input.current?.click()} disabled={up.isPending}><UploadSimple size={16} weight="bold" />{up.isPending ? "Uploading..." : "Upload resumes"}</Button>
-          <Button variant="secondary" onClick={() => download(`/recruiter/jobs/${id}/export.csv`, `candidates_${id}.csv`)}><DownloadSimple size={16} />CSV</Button>
+          <Button variant="secondary" onClick={() => download(`/recruiter/jobs/${id}/export`, `candidates_${id}.csv`)}><DownloadSimple size={16} />CSV</Button>
           <Button variant="secondary" disabled={sel.length < 2} onClick={() => setCompare(!compare)}>{compare ? "Close comparison" : `Compare ${sel.length || ""}`.trim()}</Button>
         </div>
         <div className="grid grid-cols-2 gap-3 md:ml-auto md:grid-cols-[6rem_6rem_14rem]">

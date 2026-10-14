@@ -55,3 +55,12 @@ def test_add_missing_columns_upgrades_old_table(tmp_path):
         # Accounts that existed before verification was introduced count as verified.
         assert conn.execute(text("SELECT email_verified, session_version FROM users")).one() == (1, 0)
     assert add_missing_columns(eng, Base.metadata) == []  # running again changes nothing
+
+
+def test_api_responses_never_cacheable_by_shared_caches():
+    """Cloudflare caches .csv URLs by default; a recruiter's CSV must never be served to another user from cache."""
+    with TestClient(app) as c:
+        for path in ("/health", "/auth/me", "/recruiter/jobs/1/export"):
+            r = c.get(path)
+            assert "no-store" in r.headers["cache-control"] and "private" in r.headers["cache-control"], path
+            assert "Cookie" in r.headers["vary"] and "Authorization" in r.headers["vary"], path

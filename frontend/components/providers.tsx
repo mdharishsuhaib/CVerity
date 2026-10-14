@@ -54,6 +54,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 }
 
+const NO_NAV_PATHS = ["/login", "/register"];
+
+/** The CVerity logo mark, shared by the navbar and the auth pages. */
+export function BrandMark({ className }: { className?: string }) {
+  return (
+    <span aria-hidden className={cn("grid h-6 w-6 place-items-center rounded-md bg-accent text-[11px] font-bold text-accent-on", className)}>CV</span>
+  );
+}
+
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   const path = usePathname();
   const active = path === href || (href !== "/" && path.startsWith(href));
@@ -68,11 +77,14 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 function Nav() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const path = usePathname();
+  // Log In and Create Account are focused pages: the brand shows above the form instead.
+  if (NO_NAV_PATHS.includes(path)) return null;
   return (
     <header className="sticky top-0 z-20 border-b border-line/80 bg-bg/85 backdrop-blur">
       <div className="flex h-14 w-full items-center justify-between gap-4 px-3">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span aria-hidden className="grid h-6 w-6 place-items-center rounded-md bg-accent text-[11px] font-bold text-accent-on">CV</span>
+          <BrandMark />
           CVerity
         </Link>
         <nav aria-label="Primary" className="flex min-w-0 items-center gap-1 text-sm">

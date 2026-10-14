@@ -397,7 +397,7 @@ Plain liveness check, also used by Render.
 | GET | `/recruiter/jobs/{id}/candidates/{resume_id}` | recruiter | Candidate detail with match breakdown |
 | DELETE | `/recruiter/jobs/{id}/candidates/{resume_id}` | recruiter | Remove a candidate |
 | GET | `/recruiter/jobs/{id}/compare?ids=1,2,3` | recruiter | Compare up to 5 candidates |
-| GET | `/recruiter/jobs/{id}/export.csv` | recruiter | Download the ranking as CSV |
+| GET | `/recruiter/jobs/{id}/export` | recruiter | Download the ranking as CSV |
 | GET | `/recruiter/stats` | recruiter | Dashboard numbers |
 
 **Example:**

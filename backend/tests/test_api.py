@@ -69,7 +69,7 @@ def test_full_flow():
         assert cands[0]["match"]["score"] > cands[1]["match"]["score"]
         ids = ",".join(str(x["resume"]["id"]) for x in cands)
         assert len(c.get(f"/recruiter/jobs/{job['id']}/compare?ids={ids}", headers=rec).json()["candidates"]) == 2
-        csv = c.get(f"/recruiter/jobs/{job['id']}/export.csv", headers=rec)
+        csv = c.get(f"/recruiter/jobs/{job['id']}/export", headers=rec)
         assert csv.status_code == 200 and "rank,candidate" in csv.text
 
         # seeker can't see recruiter job candidates

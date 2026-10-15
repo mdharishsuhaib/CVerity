@@ -5,7 +5,7 @@ from app.api.deps import get_current_user, get_job, owned_resume, read_upload
 from app.core.db import get_db
 from app.models import Resume, User
 from app.schemas import resume_full, resume_summary
-from app.services.llm import improve_resume
+from app.services.llm import generate_cover_letter, generate_interview_prep, improve_resume
 from app.services.pipeline import get_or_compute_match, invalidate_matches, process_resume
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
@@ -60,6 +60,26 @@ def improve(resume_id: int, job_id: int | None = None, db: Session = Depends(get
     job = get_job(db, job_id) if job_id else None
     match = get_or_compute_match(db, r, job) if job else None
     return improve_resume(r.raw_text, r.profile, r.ats, job, match)
+
+
+def _ready_with_job(db: Session, resume_id: int, job_id: int, user: User):
+    r = owned_resume(db, resume_id, user)
+    if r.status != "ready":
+        raise HTTPException(409, f"Resume is {r.status}")
+    job = get_job(db, job_id)
+    return r, job, get_or_compute_match(db, r, job)
+
+
+@router.post("/{resume_id}/cover-letter")
+def cover_letter(resume_id: int, job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    r, job, match = _ready_with_job(db, resume_id, job_id, user)
+    return generate_cover_letter(r.raw_text, r.profile, job, match)
+
+
+@router.post("/{resume_id}/interview-prep")
+def interview_prep(resume_id: int, job_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    r, job, match = _ready_with_job(db, resume_id, job_id, user)
+    return generate_interview_prep(r.raw_text, r.profile, job, match)
 
 
 @router.delete("/{resume_id}", status_code=204)

@@ -6,7 +6,7 @@ import { FileArrowUp } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { RequireAuth } from "@/components/providers";
-import { Button, ErrorNote, ListSkeleton, PageHeader, Panel, Score, Tag } from "@/components/ui";
+import { Button, Empty, ErrorNote, ListSkeleton, PageHeader, Panel, Score, Tag } from "@/components/ui";
 
 export default function SeekerDashboard() {
   return <RequireAuth role="seeker"><Inner /></RequireAuth>;
@@ -40,12 +40,16 @@ function Inner() {
             onDragLeave={() => setDrag(false)}
             onDrop={(e) => { e.preventDefault(); setDrag(false); onFile(e.dataTransfer.files[0]); }}
             disabled={upload.isPending}
-            className={cn("grid w-full place-items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center transition",
-              drag ? "border-accent bg-accent-soft" : "border-line bg-surface hover:border-accent/50")}
+            className={cn("group relative grid w-full place-items-center gap-3 overflow-hidden rounded-2xl border border-dashed px-6 py-12 text-center transition duration-300 [perspective:600px]",
+              drag ? "scale-[1.02] border-accent bg-accent-soft shadow-depth-lg" : "border-line bg-surface shadow-depth hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-depth-lg")}
           >
-            <FileArrowUp size={28} weight="duotone" className="text-accent" />
-            <span className="font-medium">{upload.isPending ? "Reading your resume..." : "Drop a resume or browse"}</span>
-            <span className="text-xs text-subtle">PDF, DOCX or TXT, up to 10 MB</span>
+            <div aria-hidden className="landing-grid absolute inset-0 opacity-50" />
+            <span className={cn("relative grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-b from-accent-soft to-surface text-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.4),0_0_0_1px_rgb(var(--accent)/0.2),0_14px_28px_-14px_rgb(var(--accent)/0.7)] transition-transform duration-500 [transform:rotateX(18deg)] group-hover:[transform:rotateX(0deg)_translateY(-4px)]",
+              (drag || upload.isPending) && "[transform:translateY(-4px)]", upload.isPending && "animate-pulse")}>
+              <FileArrowUp size={28} weight="duotone" />
+            </span>
+            <span className="relative font-medium">{upload.isPending ? "Reading your resume..." : "Drop a resume or browse"}</span>
+            <span className="relative text-xs text-subtle">PDF, DOCX or TXT, up to 10 MB</span>
           </button>
           <input ref={input} type="file" accept=".pdf,.docx,.txt" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
           <div className="mt-3"><ErrorNote error={upload.error} /></div>
@@ -54,15 +58,12 @@ function Inner() {
         <div>
           <ErrorNote error={error} />
           {isLoading ? <ListSkeleton /> : data?.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-line px-6 py-14 text-center">
-              <p className="font-medium">No resumes yet</p>
-              <p className="mx-auto mt-1 max-w-[40ch] text-sm text-muted">Upload one on the left. The report takes a few seconds.</p>
-            </div>
+            <Empty title="No resumes yet" body="Upload one on the left. The report takes a few seconds." />
           ) : (
             <ul className="grid gap-3">
-              {data?.map((r) => (
-                <li key={r.id}>
-                  <Panel as="article" className="flex flex-wrap items-center gap-5 md:flex-nowrap">
+              {data?.map((r, i) => (
+                <li key={r.id} className="fade-up" style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}>
+                  <Panel as="article" className="lift flex flex-wrap items-center gap-5 md:flex-nowrap">
                     <Score score={r.ats_score} size="sm" label="ATS" />
                     <div className="min-w-0 flex-1">
                       <Link href={`/seeker/resumes/${r.id}`} className="block truncate font-medium hover:text-accent">{r.filename}</Link>

@@ -18,6 +18,7 @@ LIMITS: list[tuple[str, str, int, int]] = [
     ("POST", "/auth/forgot-password", 3, 300),
     ("POST", "/auth/reset-password", 10, 300),
     ("POST", "/auth/change-password", 5, 300),
+    ("POST", "/auth/delete-account", 5, 300),
     ("POST", "/resumes", 20, 300),
     ("POST", "/recruiter/jobs/", 10, 300),
     ("POST", "/match/score", 30, 300),
@@ -85,6 +86,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # cache, notably Cloudflare's, which caches .csv URLs by default and ignores who is logged in, from ever
         # storing one user's response and serving it to someone else. The response varies by login cookie, too.
         response.headers["Cache-Control"] = "private, no-store, max-age=0"
+        if response.headers.get("content-type", "").startswith("text/event-stream"):
+            # Live progress streams: "no-transform" stops proxies (the Next.js server, Cloudflare) from gzipping the
+            # stream, which holds events back in a buffer so the progress bar never moves in real time.
+            response.headers["Cache-Control"] = "private, no-store, no-transform, max-age=0"
         response.headers["Vary"] = ", ".join(dict.fromkeys(
             [v.strip() for v in response.headers.get("Vary", "").split(",") if v.strip()] + ["Cookie", "Authorization"]))
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")

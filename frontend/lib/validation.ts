@@ -132,7 +132,7 @@ export function newPasswordError(password: string, email = "", name = ""): strin
 /** Guidance while typing. Deliberately not a strength meter: length is what matters most. */
 export function passwordHint(password: string): string {
   const n = pwLength(password);
-  if (!n) return `Use at least ${PASSWORD_MIN} characters. A few unrelated words with spaces work well.`;
+  if (!n) return `Use at least ${PASSWORD_MIN} characters.`;
   if (n < PASSWORD_MIN) return `${n} of ${PASSWORD_MIN} characters. Keep going.`;
   if (n < 15) return `${n} characters. Good. Longer is even better.`;
   return `${n} characters. Great length.`;

@@ -60,6 +60,29 @@ cert.pem
 *.tfstate
 *.tfstate.*
 *.tfvars
+.supabase/
+supabase/.temp/
+.firebase/
+.sentryclirc
+
+# Cloud / cluster / container login state (access keys, tokens)
+.aws/
+.azure/
+.gcloud/
+.ssh/
+.kube/
+*.kubeconfig
+kubeconfig*
+.docker/config.json
+
+# Browser captures and cookie jars (contain live session cookies and request data)
+*.har
+cookies.txt
+*.cookies
+
+# AI tool / MCP configs (can hold API tokens)
+mcp.json
+.mcp.json
 
 # =====================================================================
 #  PERSONAL DATA  (resumes, user accounts, uploaded files)
@@ -120,7 +143,10 @@ env/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.hypothesis/
+.tox/
 .coverage
+.coverage.*
 htmlcov/
 *.egg-info/
 .ipynb_checkpoints/
@@ -155,7 +181,11 @@ desktop.ini
 .vscode/
 *.swp
 *.tmp
+*.orig
+.history/
 .cursor/
+.claude/
+.codex/
 
 # =====================================================================
 #  LOCAL AI ASSISTANT SKILLS  (kept on this machine, not in the repo)

@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/providers";
 import { Field, Input } from "@/components/ui";
+import { useTilt } from "@/components/landing/three-d";
 
 /** Password input with show/hide and Caps Lock warning. Paste and password-manager autofill stay enabled. */
 export const PasswordField = React.forwardRef<HTMLInputElement, {
@@ -92,8 +93,8 @@ export function Notice({ children, tone = "neutral" }: { children: React.ReactNo
 export function AuthShell({ title, sub, children, brand }: {
   title: string; sub?: React.ReactNode; children?: React.ReactNode; brand?: boolean;
 }) {
-  return (
-    <div className="mx-auto grid max-w-sm gap-8 pt-6">
+  const form = (
+    <div className="grid gap-8">
       <div>
         {brand && (
           <Link href="/" aria-label="CVerity home" className="mb-8 inline-flex items-center gap-2.5 text-lg font-semibold tracking-tight">
@@ -101,10 +102,57 @@ export function AuthShell({ title, sub, children, brand }: {
             CVerity
           </Link>
         )}
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
+        <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em]">{title}</h1>
+        {sub && <p className="mt-1.5 text-sm text-muted">{sub}</p>}
       </div>
       {children}
+    </div>
+  );
+  if (!brand) {
+    return <div className="mx-auto max-w-md rounded-2xl bg-surface p-7 shadow-depth-lg md:p-9">{form}</div>;
+  }
+  // Log in / Create account: full-height split screen with the form beside a 3D product scene.
+  return (
+    <div className="mx-auto grid min-h-[calc(100dvh-10rem)] max-w-6xl items-center gap-12 py-4 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-20">
+      <div className="w-full max-w-sm justify-self-center lg:justify-self-start">{form}</div>
+      <AuthArt />
+    </div>
+  );
+}
+
+const AUTH_JOBS = [["Backend Engineer", 92], ["Data Engineer", 84], ["Cloud Architect", 71]] as const;
+
+/** Decorative 3D panel for the auth screens: floating layers that tilt with the pointer. */
+function AuthArt() {
+  const stage = React.useRef<HTMLDivElement>(null);
+  const scene = useTilt<HTMLDivElement>(6, stage);
+  return (
+    <div ref={stage} aria-hidden className="relative hidden h-[34rem] overflow-hidden rounded-[28px] bg-gradient-to-br from-accent/10 via-sunken to-sunken shadow-depth-lg lg:block">
+      <div className="landing-grid absolute inset-0 opacity-70" />
+      <div className="absolute inset-x-[-20%] bottom-0 h-1/2"><div className="landing-floor absolute inset-0" /></div>
+      <div className="absolute inset-0 grid place-items-center [perspective:1200px]">
+        <div ref={scene} className="hero-scene relative h-[22rem] w-[24rem] [transform-style:preserve-3d]">
+          <div className="absolute left-0 top-6 h-72 w-52 rounded-2xl bg-surface p-4 shadow-depth-lg [transform:translateZ(-30px)]">
+            <div className="flex items-center gap-2.5"><div className="h-8 w-8 rounded-lg bg-accent-soft" /><div className="grid gap-1.5"><div className="h-2 w-20 rounded-full bg-ink/80" /><div className="h-1.5 w-12 rounded-full bg-subtle/40" /></div></div>
+            {[[86, 70, 90], [64, 82], [92, 58, 76]].map((ls, i) => (
+              <div key={i} className="mt-5"><div className="h-1.5 w-10 rounded-full bg-accent" /><div className="mt-2 grid gap-1.5">{ls.map((w, j) => <div key={j} className="h-1.5 rounded-full bg-line" style={{ width: `${w}%` }} />)}</div></div>
+            ))}
+            <div className="hero-scan pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent via-accent/15 to-transparent"><div className="absolute inset-x-0 top-1/2 h-px bg-accent/60" /></div>
+          </div>
+          <div className="float-a absolute left-32 top-0 rounded-2xl bg-surface/95 px-4 py-3 shadow-depth-lg backdrop-blur [transform:translateZ(80px)]">
+            <p className="text-[11px] text-subtle">ATS score</p>
+            <p className="font-mono text-2xl font-semibold text-accent">88</p>
+          </div>
+          {AUTH_JOBS.map(([t, s], i) => (
+            <div key={t} className="absolute right-0 w-48 rounded-xl bg-surface p-3 shadow-depth-lg"
+              style={{ top: `${5.5 + i * 4.75}rem`, transform: `translateZ(${120 - i * 40}px)` }}>
+              <div className="flex items-center text-[12px] font-medium">{t}<span className={cn("ml-auto font-mono text-base", s >= 80 ? "text-accent" : "text-warn")}>{s}</span></div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line/70"><div className={cn("bar-grow h-full rounded-full", s >= 80 ? "bg-accent" : "bg-warn")} style={{ width: `${s}%` }} /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="absolute inset-x-0 bottom-8 text-center text-sm font-medium text-muted">Your resume, scored and ranked against every open job.</p>
     </div>
   );
 }

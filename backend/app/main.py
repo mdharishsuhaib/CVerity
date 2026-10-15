@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.api import auth, jobs, match, recruiter, resumes
+from app.api import applications, auth, jobs, match, recruiter, resumes
 from app.core.db import SessionLocal, engine
 from app.core.migrate import prepare_database
 from app.core.middleware import RateLimitMiddleware
@@ -48,7 +48,7 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Disposition"])
 
-for r in (auth.router, resumes.router, jobs.router, match.router, recruiter.router):
+for r in (auth.router, resumes.router, jobs.router, match.router, recruiter.router, applications.router):
     app.include_router(r)
 
 

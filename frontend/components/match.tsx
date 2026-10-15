@@ -48,7 +48,7 @@ export function MatchBreakdown({ m }: { m: Match }) {
 export function MatchRow({ title, subtitle, m, actions }: { title: string; subtitle?: string; m: Match; actions?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <Panel as="article" className="p-0">
+    <Panel as="article" className="lift p-0">
       <div className="flex flex-wrap items-center gap-4 p-4 md:flex-nowrap md:p-5">
         <Score score={m.score} size="sm" label="match" />
         <div className="min-w-0 flex-1">

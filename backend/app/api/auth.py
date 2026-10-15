@@ -3,6 +3,7 @@
 Create Account checks that new details meet the rules. Log In checks that credentials match an
 existing account, with the same generic error for an unknown email and a wrong password.
 """
+import json
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -19,9 +20,10 @@ from app.core.db import SessionLocal, get_db
 from app.core.security import (DUMMY_HASH, create_access_token, hash_email_token, hash_password, needs_rehash,
                                new_email_token, verify_password)
 from app.core.settings import get_settings
-from app.models import AuthToken, User
-from app.schemas import user_out
+from app.models import Application, AuthToken, Job, MatchResult, Resume, User
+from app.schemas import application_out, job_out, resume_full, user_out
 from app.services.mailer import EmailError, send_reset_email, send_verification_email
+from app.services.matcher import job_index
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 log = logging.getLogger(__name__)
@@ -315,3 +317,50 @@ async def change_password(body: ChangeIn, response: Response, db: Session = Depe
     user.session_version = (user.session_version or 0) + 1
     db.commit()
     return _set_session(response, user)  # this device stays logged in with a fresh session
+
+
+# ---------- Your data ----------
+
+@router.get("/export")
+def export_my_data(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Everything stored about this account, as JSON (right of access / data portability)."""
+    resumes = db.query(Resume).filter(Resume.owner_id == user.id).order_by(Resume.created_at).all()
+    jobs = db.query(Job).filter(Job.owner_id == user.id).order_by(Job.created_at).all()
+    apps = db.query(Application).filter(Application.user_id == user.id).order_by(Application.created_at).all()
+    data = {
+        "exported_at": _now().isoformat(),
+        "account": {**user_out(user), "created_at": user.created_at.isoformat() if user.created_at else None},
+        "resumes": [{**resume_full(r), "raw_text": r.raw_text} for r in resumes if r.job_id is None],
+        "jobs": [job_out(j) for j in jobs],
+        "candidates": [resume_full(r) for r in resumes if r.job_id is not None],
+        "applications": [application_out(a) for a in apps],
+    }
+    return Response(json.dumps(data, indent=2, default=str), media_type="application/json",
+                    headers={"Content-Disposition": 'attachment; filename="cverity-data.json"'})
+
+
+class DeleteIn(BaseModel):
+    password: str = _TEXT
+
+
+@router.post("/delete-account", status_code=204)
+def delete_account(body: DeleteIn, response: Response, db: Session = Depends(get_db),
+                   user: User = Depends(get_current_user)):
+    """Permanently deletes the account and everything it owns. Requires the current password."""
+    if not body.password or not verify_password(body.password, user.hashed_password):
+        _fail("Your password is incorrect.", "password", status=400)
+    resume_ids = [i for (i,) in db.query(Resume.id).filter(Resume.owner_id == user.id).all()]
+    job_ids = [i for (i,) in db.query(Job.id).filter(Job.owner_id == user.id).all()]
+    if resume_ids:
+        db.query(MatchResult).filter(MatchResult.resume_id.in_(resume_ids)).delete(synchronize_session=False)
+    if job_ids:
+        db.query(MatchResult).filter(MatchResult.job_id.in_(job_ids)).delete(synchronize_session=False)
+        # Candidates uploaded to these jobs, and other seekers' tracked applications for them, go too.
+        db.query(Resume).filter(Resume.job_id.in_(job_ids)).delete(synchronize_session=False)
+        db.query(Application).filter(Application.job_id.in_(job_ids)).delete(synchronize_session=False)
+    db.delete(user)  # cascades: resumes, jobs, tokens, applications
+    db.commit()
+    if job_ids:
+        job_index.invalidate()
+    s = get_settings()
+    response.delete_cookie(s.session_cookie_name, path="/", httponly=True, secure=s.secure_cookies, samesite="lax")

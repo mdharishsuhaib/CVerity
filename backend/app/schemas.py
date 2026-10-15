@@ -1,5 +1,5 @@
 """Serialization helpers (API never returns embeddings or password hashes)."""
-from app.models import Job, Resume, User
+from app.models import Application, Job, Resume, User
 
 
 def user_out(u: User) -> dict:
@@ -27,6 +27,18 @@ def resume_summary(r: Resume) -> dict:
         "ats_score": (r.ats or {}).get("score"), "ats_grade": (r.ats or {}).get("grade"),
         "years_experience": p.get("years_experience"), "titles": p.get("titles", [])[:3],
         "top_skills": p.get("skills", [])[:10], "created_at": r.created_at.isoformat() if r.created_at else None,
+        "stage": r.stage or "new", "notes": r.notes or "",
+    }
+
+
+def application_out(a: Application, match: dict | None = None) -> dict:
+    return {
+        "id": a.id, "job": job_out(a.job, full=False) if a.job else None, "resume_id": a.resume_id,
+        "status": a.status, "notes": a.notes or "",
+        "applied_at": a.applied_at.isoformat() if a.applied_at else None,
+        "created_at": a.created_at.isoformat() if a.created_at else None,
+        "updated_at": a.updated_at.isoformat() if a.updated_at else None,
+        "match_score": match.get("score") if match else None,
     }
 
 

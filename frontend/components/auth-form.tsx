@@ -41,6 +41,10 @@ export function RegisterForm() {
   const { login } = useAuth();
   const router = useRouter();
   const [role, setRole] = useState<"seeker" | "recruiter">("seeker");
+  useEffect(() => {
+    // "I'm hiring" links to /register?role=recruiter
+    if (new URLSearchParams(window.location.search).get("role") === "recruiter") setRole("recruiter");
+  }, []);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const f = useAuthForm({ full_name: "", email: "", password: "", confirm_password: "" });
   const refs = {
@@ -103,7 +107,7 @@ export function RegisterForm() {
           <div className="grid grid-cols-2 gap-2">
             {([["seeker", "Looking for a job"], ["recruiter", "Hiring"]] as const).map(([r, l]) => (
               <button type="button" key={r} onClick={() => setRole(r)} aria-pressed={role === r}
-                className={cn("rounded-md px-3 py-2.5 text-left text-sm ring-1 ring-inset transition", role === r ? "bg-accent-soft font-medium text-accent-ink ring-accent/40" : "bg-surface text-muted ring-line hover:text-ink")}>
+                className={cn("rounded-md px-3 py-2.5 text-left text-sm transition", role === r ? "bg-accent-soft font-medium text-accent-ink shadow-[inset_0_0_0_1px_rgb(var(--accent)/0.45),0_6px_16px_-10px_rgb(var(--accent)/0.6)]" : "bg-surface text-muted shadow-key hover:-translate-y-px hover:text-ink")}>
                 {l}
               </button>
             ))}

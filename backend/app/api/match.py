@@ -37,13 +37,17 @@ def match_jobs_for_resume(resume_id: int, top_k: int = Query(20, ge=1, le=100), 
 
 @router.get("/job/{job_id}/candidates")
 def candidates_for_job(job_id: int, min_score: float = 0, min_years: float = 0, skills: str | None = None,
-                       db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+                       stage: str | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     job = owned_job(db, job_id, user)
-    return {"job": job_out(job, full=False), "items": rank_candidates(db, job, min_score, min_years, skills)}
+    return {"job": job_out(job, full=False), "items": rank_candidates(db, job, min_score, min_years, skills, stage)}
 
 
-def rank_candidates(db: Session, job: Job, min_score: float = 0, min_years: float = 0, skills: str | None = None) -> list[dict]:
-    resumes = db.query(Resume).filter(Resume.job_id == job.id).all()
+def rank_candidates(db: Session, job: Job, min_score: float = 0, min_years: float = 0, skills: str | None = None,
+                    stage: str | None = None) -> list[dict]:
+    q = db.query(Resume).filter(Resume.job_id == job.id)
+    if stage:
+        q = q.filter(Resume.stage == stage)
+    resumes = q.all()
     ensure_embeddings(db, [job] + [r for r in resumes if r.status == "ready"])
     want = [s.strip().lower() for s in (skills or "").split(",") if s.strip()]
     items = []

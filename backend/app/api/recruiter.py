@@ -7,6 +7,7 @@ import time
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -20,6 +21,13 @@ from app.services.pipeline import get_or_compute_match, process_resume
 
 router = APIRouter(prefix="/recruiter", tags=["recruiter"])
 MAX_BULK = 100
+
+
+def _cell(v):
+    """Stop spreadsheet apps from running text cells (names, notes, file names) as formulas."""
+    if isinstance(v, str) and v[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + v
+    return v
 
 
 def _process_batch(items: list[tuple[int, bytes]], job_id: int) -> None:
@@ -155,21 +163,51 @@ def export_csv(job_id: int, min_score: float = 0, db: Session = Depends(get_db),
     rows = rank_candidates(db, job, min_score=min_score)
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["rank", "candidate", "email", "file", "score", "verdict", "semantic", "skills", "experience",
-                "education", "title", "years_experience", "ats_score", "matched_skills", "missing_required"])
+    w.writerow(["rank", "candidate", "email", "file", "stage", "score", "verdict", "semantic", "skills", "experience",
+                "education", "title", "years_experience", "ats_score", "matched_skills", "missing_required", "notes"])
     for it in rows:
         if not it["match"]:
             continue
         r, m = it["resume"], it["match"]
         full = db.get(Resume, r["id"])
         c = m["components"]
-        w.writerow([it["rank"], r["candidate_name"], (full.profile.get("contact") or {}).get("email") or "", r["filename"],
-                    m["score"], m["verdict"], c["semantic"], c["skills"], c["experience"], c["education"], c["title"],
-                    r["years_experience"], r["ats_score"], "; ".join(m["matched"]), "; ".join(m["missing_required"])])
+        w.writerow([_cell(x) for x in [it["rank"], r["candidate_name"], (full.profile.get("contact") or {}).get("email") or "", r["filename"],
+                    r["stage"], m["score"], m["verdict"], c["semantic"], c["skills"], c["experience"], c["education"], c["title"],
+                    r["years_experience"], r["ats_score"], "; ".join(m["matched"]), "; ".join(m["missing_required"]), r["notes"]]])
     buf.seek(0)
     safe = "".join(ch if ch.isalnum() else "_" for ch in job.title)[:40]
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
                              headers={"Content-Disposition": f'attachment; filename="candidates_{safe}.csv"'})
+
+
+STAGES = ("new", "shortlisted", "interview", "offer", "hired", "rejected")
+
+
+class CandidateUpdate(BaseModel):
+    stage: str | None = Field(default=None, pattern="^(" + "|".join(STAGES) + ")$")
+    notes: str | None = Field(default=None, max_length=5000)
+
+
+@router.patch("/jobs/{job_id}/candidates/{resume_id}")
+def update_candidate(job_id: int, resume_id: int, body: CandidateUpdate, db: Session = Depends(get_db),
+                     user: User = Depends(require_recruiter)):
+    job = owned_job(db, job_id, user)
+    r = db.get(Resume, resume_id)
+    if not r or r.job_id != job.id:
+        raise HTTPException(404, "Candidate not found")
+    if body.stage is not None:
+        r.stage = body.stage
+    if body.notes is not None:
+        r.notes = body.notes
+    db.commit()
+    return resume_summary(r)
+
+
+@router.get("/jobs/{job_id}/pipeline")
+def pipeline_counts(job_id: int, db: Session = Depends(get_db), user: User = Depends(require_recruiter)):
+    job = owned_job(db, job_id, user)
+    rows = dict(db.query(Resume.stage, func.count(Resume.id)).filter(Resume.job_id == job.id).group_by(Resume.stage).all())
+    return {"stages": list(STAGES), "counts": {s: rows.get(s, 0) for s in STAGES}}
 
 
 @router.delete("/jobs/{job_id}/candidates/{resume_id}", status_code=204)

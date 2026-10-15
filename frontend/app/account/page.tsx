@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
-import { User, api } from "@/lib/api";
+import { DownloadSimple } from "@phosphor-icons/react";
+import { User, api, download } from "@/lib/api";
 import { confirmError, loginPasswordError, newPasswordError, passwordHint } from "@/lib/validation";
 import { RequireAuth, useAuth } from "@/components/providers";
 import { AuthShell, FormError, Notice, PasswordField, useAuthForm } from "@/components/auth-fields";
@@ -40,7 +41,7 @@ function Account() {
   };
 
   return (
-    <AuthShell title="Account" sub={<>{user?.full_name} · {user?.email}</>}>
+    <AuthShell brand={false} title="Account" sub={<>{user?.full_name} · {user?.email}</>}>
       <form onSubmit={submit} className="grid gap-4" noValidate>
         <h2 className="font-medium">Change password</h2>
         {done && <Notice tone="good">Password updated. You've been logged out on every other device.</Notice>}
@@ -56,6 +57,73 @@ function Account() {
         <FormError message={f.formErr} />
         <Button className="w-full" disabled={f.busy}>{f.busy ? "Saving..." : "Update password"}</Button>
       </form>
+      <YourData />
     </AuthShell>
+  );
+}
+
+function YourData() {
+  const { logout } = useAuth();
+  const [exportErr, setExportErr] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const pwRef = useRef<HTMLInputElement>(null);
+  const f = useAuthForm({ password: "" });
+
+  const exportData = async () => {
+    setExportErr(null);
+    setExporting(true);
+    try {
+      await download("/auth/export", "cverity-data.json");
+    } catch (e) {
+      setExportErr((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const remove = (e: React.FormEvent) => {
+    e.preventDefault();
+    const err = loginPasswordError(f.values.password);
+    if (f.check({ password: err }, ["password"])) return pwRef.current?.focus();
+    f.run(async () => {
+      await api("/auth/delete-account", { method: "POST", body: JSON.stringify({ password: f.values.password }) });
+      await logout();
+      window.location.replace("/"); // full navigation: beats RequireAuth's redirect to /login
+    });
+  };
+
+  return (
+    <div className="grid gap-6 border-t border-line pt-8">
+      <section className="grid gap-3">
+        <h2 className="font-medium">Your data</h2>
+        <p className="text-sm text-muted">Download everything CVerity stores about you: account details, resumes and their reports, jobs, candidates and tracked applications.</p>
+        <FormError message={exportErr} />
+        <Button variant="secondary" className="w-full" onClick={exportData} disabled={exporting}>
+          <DownloadSimple size={16} />{exporting ? "Preparing..." : "Download my data (JSON)"}
+        </Button>
+      </section>
+
+      <section className="grid gap-3">
+        <h2 className="font-medium text-bad">Delete account</h2>
+        <p className="text-sm text-muted">Permanently removes your account, resumes, jobs, candidates and applications. This can&apos;t be undone.</p>
+        {!confirming ? (
+          <Button variant="secondary" className="w-full text-bad" onClick={() => { setConfirming(true); setTimeout(() => pwRef.current?.focus(), 0); }}>
+            Delete my account
+          </Button>
+        ) : (
+          <form onSubmit={remove} className="grid gap-3 rounded-xl bg-bad-soft/50 p-4 ring-1 ring-bad/20" noValidate>
+            <PasswordField ref={pwRef} label="Enter your password to confirm" autoComplete="current-password" value={f.values.password}
+              onChange={(v) => f.set("password", v)} onBlur={() => f.blur("password")}
+              error={f.shown("password", loginPasswordError(f.values.password))} />
+            <FormError message={f.formErr} />
+            <div className="flex gap-2">
+              <Button variant="danger" className="flex-1" disabled={f.busy}>{f.busy ? "Deleting..." : "Delete permanently"}</Button>
+              <Button type="button" variant="quiet" onClick={() => { setConfirming(false); f.set("password", ""); }}>Cancel</Button>
+            </div>
+          </form>
+        )}
+      </section>
+    </div>
   );
 }

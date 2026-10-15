@@ -30,6 +30,7 @@ class User(Base):
     resumes: Mapped[list["Resume"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     jobs: Mapped[list["Job"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     tokens: Mapped[list["AuthToken"]] = relationship(cascade="all, delete-orphan")
+    applications: Mapped[list["Application"]] = relationship(cascade="all, delete-orphan")
 
 
 class AuthToken(Base):
@@ -82,6 +83,9 @@ class Resume(Base):
     profile: Mapped[dict] = mapped_column(JSON, default=dict)
     ats: Mapped[dict] = mapped_column(JSON, default=dict)
     embeddings: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Recruiter hiring pipeline (only meaningful for candidate resumes, i.e. job_id is set).
+    stage: Mapped[str] = mapped_column(String(20), default="new", server_default="new")
+    notes: Mapped[str] = mapped_column(Text, default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     owner: Mapped[User] = relationship(back_populates="resumes")
@@ -99,4 +103,22 @@ class MatchResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-__all__ = ["User", "Job", "Resume", "MatchResult"]
+class Application(Base):
+    """A job seeker tracking one job: saved -> applied -> interviewing -> offer | rejected."""
+    __tablename__ = "applications"
+    __table_args__ = (UniqueConstraint("user_id", "job_id", name="uq_application_user_job"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"), index=True)
+    resume_id: Mapped[int | None] = mapped_column(ForeignKey("resumes.id", ondelete="SET NULL"), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="saved")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    job: Mapped[Job] = relationship()
+
+
+__all__ = ["User", "Job", "Resume", "MatchResult", "Application", "AuthToken"]

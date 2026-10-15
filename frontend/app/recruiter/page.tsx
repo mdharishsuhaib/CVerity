@@ -2,11 +2,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MagicWand, Plus } from "@phosphor-icons/react";
+import { Briefcase, Gauge, MagicWand, Plus, Star, UsersThree } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { EDU_LABELS } from "@/lib/utils";
 import { RequireAuth } from "@/components/providers";
-import { Button, ErrorNote, Field, Input, ListSkeleton, PageHeader, Panel, Select, Tag, Textarea } from "@/components/ui";
+import { Button, Empty, ErrorNote, Field, Input, ListSkeleton, PageHeader, Panel, Select, Tag, Textarea } from "@/components/ui";
+import { TiltCard } from "@/components/landing/three-d";
 
 export default function Page() {
   return <RequireAuth role="recruiter"><Dashboard /></RequireAuth>;
@@ -21,19 +22,28 @@ function Dashboard() {
       <PageHeader title="Jobs" sub="Open a job to upload resumes and see the ranked shortlist."
         actions={!showNew && <Button onClick={() => setShowNew(true)}><Plus size={16} weight="bold" />New job</Button>} />
 
-      <dl className="mb-10 grid grid-cols-2 gap-x-8 gap-y-4 border-y border-line py-5 md:grid-cols-4">
-        {[["Open jobs", stats?.jobs], ["Candidates", stats?.candidates], ["Average match", stats?.avg_score], ["Scored 65 or higher", stats?.strong_matches]].map(([l, v]) => (
-          <div key={l as string}><dt className="text-xs text-subtle">{l}</dt><dd className="mt-1 font-mono text-2xl font-semibold tabular">{v ?? "-"}</dd></div>
+      <dl className="mb-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        {[["Open jobs", stats?.jobs, Briefcase], ["Candidates", stats?.candidates, UsersThree], ["Average match", stats?.avg_score, Gauge], ["Scored 65 or higher", stats?.strong_matches, Star]].map(([l, v, Icon]: any, i) => (
+          <div key={l} className="fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+            <TiltCard max={5} className="h-full rounded-xl bg-surface p-5 shadow-depth">
+              <dt className="relative z-[2] flex items-center gap-2 text-xs text-subtle [transform:translateZ(16px)]">
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent-soft text-accent"><Icon size={15} weight="duotone" /></span>{l}
+              </dt>
+              <dd className="relative z-[2] mt-3 font-mono text-3xl font-semibold tabular [transform:translateZ(30px)]">{v ?? "-"}</dd>
+            </TiltCard>
+          </div>
         ))}
       </dl>
 
       {showNew && <NewJob onDone={() => setShowNew(false)} />}
       <ErrorNote error={error} />
-      {isLoading ? <ListSkeleton rows={4} /> : (
-        <ul className="divide-y divide-line overflow-hidden rounded-xl bg-surface ring-1 ring-line/70">
-          {jobs?.items.map((j: any) => (
-            <li key={j.id}>
-              <Link href={`/recruiter/jobs/${j.id}`} className="grid gap-2 p-5 transition-colors hover:bg-sunken/60 md:grid-cols-[1fr_auto] md:items-center">
+      {isLoading ? <ListSkeleton rows={4} /> : jobs?.items.length === 0 ? (
+        <Empty title="No jobs yet" body="Create one, then upload resumes to get a ranked shortlist." action={!showNew && <Button onClick={() => setShowNew(true)}><Plus size={16} weight="bold" />New job</Button>} />
+      ) : (
+        <ul className="grid gap-3">
+          {jobs?.items.map((j: any, i: number) => (
+            <li key={j.id} className="fade-up" style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}>
+              <Link href={`/recruiter/jobs/${j.id}`} className="lift grid gap-2 rounded-xl bg-surface p-5 shadow-depth md:grid-cols-[1fr_auto] md:items-center">
                 <div className="min-w-0">
                   <p className="font-medium">{j.title}</p>
                   <p className="text-sm text-subtle">{[j.company, j.location, j.min_years_experience ? `${j.min_years_experience}+ yrs` : null].filter(Boolean).join(", ")}</p>
@@ -45,7 +55,6 @@ function Dashboard() {
               </Link>
             </li>
           ))}
-          {jobs?.items.length === 0 && <li className="p-10 text-center text-sm text-muted">No jobs yet. Create one to start ranking candidates.</li>}
         </ul>
       )}
     </>
@@ -72,7 +81,7 @@ function NewJob({ onDone }: { onDone: () => void }) {
   const descShort = f.description.trim().length < 20;
 
   return (
-    <Panel className="mb-10 grid gap-5 p-6">
+    <Panel className="page-in mb-10 grid gap-5 p-6 shadow-depth-lg">
       <div className="flex items-center justify-between"><h2 className="font-semibold">New job</h2><Button size="sm" variant="quiet" onClick={onDone}>Cancel</Button></div>
       <div className="grid gap-4 md:grid-cols-3">
         <Field label="Title"><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>

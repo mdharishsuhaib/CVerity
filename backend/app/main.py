@@ -72,6 +72,13 @@ async def validation_error(_: Request, exc: RequestValidationError):
 # HEAD is allowed too: uptime monitors such as UptimeRobot check with HEAD requests by default.
 # The database query means UptimeRobot alerts when the database is down, and the regular
 # pings keep Supabase active (projects with no activity for 7 days get paused).
+@app.api_route("/", methods=["GET", "HEAD"], tags=["meta"], include_in_schema=False)
+def root():
+    """The API has no web page; point people (and uptime monitors) to the useful addresses."""
+    return {"name": "CVerity API", "status": "running", "health": "/health", "docs": "/docs",
+            "website": "https://cverity.mdharishsuhaib.workers.dev"}
+
+
 @app.api_route("/health", methods=["GET", "HEAD"], tags=["meta"])
 def health():
     try:

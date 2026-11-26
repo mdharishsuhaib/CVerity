@@ -7,10 +7,10 @@
     "build": "next build",
     "start": "next start -p 3000",
     "test": "vitest run",
-    "cf:build": "opennextjs-cloudflare build",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload"
+    "cf:build": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "preview": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare upload"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

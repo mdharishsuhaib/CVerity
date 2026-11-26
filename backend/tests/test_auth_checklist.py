@@ -82,9 +82,9 @@ def test_name_nfc_normalized_and_trimmed():
 
 
 def test_name_too_long():
-    assert v.check_name("a" * 100)
-    with pytest.raises(ValueError, match="must not exceed 100"):
-        v.check_name("a" * 101)
+    assert v.check_name("a" * 30)
+    with pytest.raises(ValueError, match="must not exceed 30"):
+        v.check_name("a" * 31)
 
 
 @pytest.mark.parametrize("name", ["Ananya\nMehta", "Ananya\x00", "Ananya\rX", "An\u202eanya", "Ananya\x1b[31m"])
@@ -104,8 +104,8 @@ def test_name_needs_letters_only(name):
 @pytest.mark.parametrize("email,msg", [("", "enter your email"), ("   ", "enter your email"), ("plain", "valid email"),
                                        ("a@@b.com", "valid email"), ("a@b@c.com", "valid email"), ("a b@c.com", "valid email"),
                                        ("a@b", "valid email"), ("@x.com", "valid email"), ("a@-x.com", "valid email"),
-                                       ("a..b@x.com", "valid email"), ("x" * 65 + "@x.com", "valid email"),
-                                       ("a@" + "x" * 250 + ".com", "valid email")])
+                                       ("a..b@x.com", "valid email"), ("x" * 65 + "@x.com", "must not exceed 30"),
+                                       ("a@" + "x" * 250 + ".com", "must not exceed 30")])
 def test_email_empty_and_malformed(email, msg):
     with pytest.raises(ValueError, match=msg):
         v.check_email(email)

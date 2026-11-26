@@ -1134,6 +1134,10 @@ const Lanyard = ({
       const imageKey = `${s.frontImage}|${s.backImage}|${s.strapImage}`;
       if (imageKey !== applied.imageKey) {
         const token = ++imageToken;
+        // Live faces (a new data URL per typed name) would grow this cache forever; keep only the current images.
+        for (const url of imageCache.keys()) {
+          if (url !== s.frontImage && url !== s.backImage && url !== s.strapImage) imageCache.delete(url);
+        }
         Promise.all([
           loadImage(imageCache, s.frontImage),
           loadImage(imageCache, s.backImage),

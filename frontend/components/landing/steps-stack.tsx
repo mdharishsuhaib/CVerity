@@ -19,7 +19,7 @@ export default function StepsStack() {
           <div className="grid h-full gap-6 md:grid-cols-[auto_1fr] md:items-center md:gap-10">
             <div className="flex items-center gap-4 md:block">
               <span className="font-mono text-5xl font-semibold tracking-tight text-accent/25 md:text-7xl">{n}</span>
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-soft text-accent md:mt-3"><Icon size={24} weight="duotone" /></span>
+              <Icon size={30} weight="regular" className="text-accent md:mt-3" />
             </div>
             <div>
               <h3 className="text-2xl font-semibold tracking-tight md:text-3xl">{t}</h3>

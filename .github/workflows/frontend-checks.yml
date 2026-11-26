@@ -1,0 +1,31 @@
+# Type check and unit tests for the frontend on every push and pull request.
+# Cloudflare Workers Builds skips the type check to deploy faster (see frontend/next.config.mjs), so it runs here instead,
+# in parallel with the deploy. A red check here means the pushed code has a type error or a failing test.
+name: Frontend checks
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", ".github/workflows/frontend-checks.yml"]
+  pull_request:
+    paths: ["frontend/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - run: npm test

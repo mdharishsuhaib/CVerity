@@ -16,8 +16,8 @@ from email_validator import EmailNotValidError, EmailUndeliverableError, validat
 
 log = logging.getLogger(__name__)
 
-NAME_MAX = 100
-EMAIL_MAX = 254
+NAME_MAX = 30
+EMAIL_MAX = 30
 PASSWORD_MIN, PASSWORD_MAX = 8, 128
 
 MSG_NAME_REQUIRED = "Please enter your full name."
@@ -25,6 +25,7 @@ MSG_NAME_TOO_LONG = f"Your name must not exceed {NAME_MAX} characters."
 MSG_NAME_INVALID = "Please enter a valid name."
 MSG_EMAIL_REQUIRED = "Please enter your email address."
 MSG_EMAIL_INVALID = "Please enter a valid email address."
+MSG_EMAIL_TOO_LONG = f"Your email must not exceed {EMAIL_MAX} characters."
 MSG_EMAIL_UNDELIVERABLE = "This email domain can't receive email. Please check the spelling."
 MSG_EMAIL_TAKEN = "An account with this email address already exists. Please log in or recover your account."
 MSG_PASSWORD_REQUIRED = "Please enter a password."
@@ -101,7 +102,9 @@ def check_email(value: str, *, deliverability: bool = False) -> str:
     email = (value or "").strip()
     if not email:
         raise ValueError(MSG_EMAIL_REQUIRED)
-    if len(email) > EMAIL_MAX or email.count("@") != 1 or any(c.isspace() for c in email):
+    if len(email) > EMAIL_MAX:
+        raise ValueError(MSG_EMAIL_TOO_LONG)
+    if email.count("@") != 1 or any(c.isspace() for c in email):
         raise ValueError(MSG_EMAIL_INVALID)
     local, _, domain = email.partition("@")
     if len(local) > 64 or len(domain) > 253:  # RFC 5321 part limits

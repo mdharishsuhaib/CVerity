@@ -49,7 +49,7 @@ export default function Page() {
       <form onSubmit={submit} className="grid gap-4" noValidate>
         <Field label="Email" error={f.shown("email", error)}>
           <Input ref={ref} type="email" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false}
-            maxLength={EMAIL_MAX + 10} value={f.values.email} aria-invalid={!!f.shown("email", error)}
+            maxLength={EMAIL_MAX} value={f.values.email} aria-invalid={!!f.shown("email", error)}
             onChange={(e) => f.set("email", e.target.value)} onBlur={() => f.blur("email")} />
         </Field>
         <FormError message={f.formErr} />

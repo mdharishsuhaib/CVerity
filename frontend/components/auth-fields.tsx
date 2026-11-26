@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/providers";
 import { Field, Input } from "@/components/ui";
 import { useTilt } from "@/components/landing/three-d";
-import { Antigravity, Lanyard } from "@/components/fx";
+import { Folder, Lanyard } from "@/components/fx";
+import { badgeFront, emailFirstName } from "@/lib/auth-art";
 
 /** Password input with show/hide and Caps Lock warning. Paste and password-manager autofill stay enabled. */
 export const PasswordField = React.forwardRef<HTMLInputElement, {
@@ -91,10 +92,12 @@ export function Notice({ children, tone = "neutral" }: { children: React.ReactNo
   );
 }
 
-export function AuthShell({ title, sub, children, brand, scene }: {
+export function AuthShell({ title, sub, children, brand, scene, who = "" }: {
   title: string; sub?: React.ReactNode; children?: React.ReactNode; brand?: boolean;
-  /** React Bits effect beside the form: "login" (Antigravity particles) or "signup" (3D Lanyard badge). */
+  /** React Bits effect beside the form: "login" (3D Folder) or "signup" (3D Lanyard badge). */
   scene?: "login" | "signup";
+  /** What the visitor has typed: the Full name on Sign up, the Email on Log in. Personalizes the 3D art live. */
+  who?: string;
 }) {
   const form = (
     <div className="grid gap-8">
@@ -118,34 +121,78 @@ export function AuthShell({ title, sub, children, brand, scene }: {
   return (
     <div className="mx-auto grid min-h-[calc(100dvh-10rem)] max-w-6xl items-center gap-12 py-4 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-20">
       <div className="w-full max-w-sm justify-self-center lg:justify-self-start">{form}</div>
-      {scene === "login" ? <LoginArt /> : scene === "signup" ? <SignupArt /> : <AuthArt />}
+      {scene === "login" ? <LoginArt email={who} /> : scene === "signup" ? <SignupArt name={who} /> : <AuthArt />}
     </div>
   );
 }
 
-/** Log in: React Bits Antigravity, a 3D field of particles that flows toward the pointer and bursts on click. */
-function LoginArt() {
+/** Log in: React Bits Folder, a 3D folder of your saved CVerity work that opens on click; drag a page out or click to zoom. */
+function LoginArt({ email }: { email: string }) {
+  const page = "absolute inset-0 flex flex-col gap-1.5 overflow-hidden rounded-[6px] bg-white p-3 text-left text-[9px] leading-snug text-[#52525b]";
+  const items = [
+    { title: "ATS report", content: (
+      <div className={page}>
+        <p className="text-[10px] font-semibold text-[#18181b]">ATS report</p>
+        <div className="mx-auto mt-1 grid h-14 w-14 place-items-center rounded-full" style={{ background: "conic-gradient(#0e7a5f 0 92%, #e4e4e7 92% 100%)" }}>
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-white font-mono text-base font-bold text-[#18181b]">92</span>
+        </div>
+        <p className="text-center font-semibold text-[#0e7a5f]">Grade A</p>
+        {[96, 88, 74].map((w) => <span key={w} className="h-1 rounded-full bg-[#e5f2ed]"><span className="block h-full rounded-full bg-[#0e7a5f]" style={{ width: `${w}%` }} /></span>)}
+      </div>
+    ) },
+    { title: "Top matches", content: (
+      <div className={page}>
+        <p className="text-[10px] font-semibold text-[#18181b]">Top matches</p>
+        {([["Data Analyst", 94], ["BI Developer", 87], ["Analytics Eng.", 72]] as const).map(([t, s]) => (
+          <div key={t} className="rounded bg-[#f4f4f5] px-1.5 py-1">
+            <div className="flex justify-between"><span className="text-[#18181b]">{t}</span><span className="font-mono font-semibold text-[#0e7a5f]">{s}%</span></div>
+          </div>
+        ))}
+      </div>
+    ) },
+    { title: "Cover letter", content: (
+      <div className={page}>
+        <p className="text-[10px] font-semibold text-[#18181b]">Cover letter</p>
+        <p>Dear Hiring Team, as a data analyst who shipped 14 live dashboards...</p>
+        {[90, 78, 84, 60].map((w) => <span key={w} className="h-1 rounded-full bg-[#e4e4e7]" style={{ width: `${w}%` }} />)}
+      </div>
+    ) },
+    { title: "Interview prep", content: (
+      <div className={page}>
+        <p className="text-[10px] font-semibold text-[#18181b]">Interview prep</p>
+        <p className="rounded bg-[#e5f2ed] px-1.5 py-1 text-[#0a5845]">Q. Walk me through a dashboard you built.</p>
+        <p className="rounded bg-[#fdf3e7] px-1.5 py-1 text-[#9a5b13]">Q. How would you learn Looker fast?</p>
+      </div>
+    ) },
+  ];
   return (
-    <div className="relative hidden h-[34rem] overflow-hidden rounded-[28px] bg-gradient-to-br from-accent/10 via-surface to-sunken shadow-depth-lg lg:block">
-      <div aria-hidden className="absolute inset-0">
-        <Antigravity lightMode colors={["#0e7a5f", "#5fd3ae", "#2f8fb8"]} colorMode="conic" count={340} particleShape="capsule"
-          magnetRadius={14} ringRadius={9} particleSize={1.4} depthFactor={1.2} waveAmplitude={1.1} clickBurst maxDevicePixelRatio={1.5} />
+    <div className="relative hidden h-[36rem] overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/10 via-sunken to-sunken shadow-depth-lg lg:block">
+      <div aria-hidden className="landing-grid absolute inset-0 opacity-60" />
+      <div className="absolute inset-0 grid place-items-center pt-28">
+        <Folder items={items} label={`${emailFirstName(email)}'s CVerity`} theme="light" color="#0e7a5f" paperColor="#ffffff" variant="solid" mode="flap"
+          layout="spread" size={1.2} tilt={0.6} bounce={0.45} peek intro draggable zoomOnClick />
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 grid justify-items-center gap-1 bg-gradient-to-t from-surface via-surface/80 to-transparent px-8 pb-8 pt-24 text-center">
-        <p className="text-lg font-semibold tracking-tight">Welcome back.</p>
-        <p className="text-sm text-muted">Your scores, matches and applications are waiting. Move the cursor to steer the field.</p>
-      </div>
+      <p className="pointer-events-none absolute inset-x-0 bottom-6 text-center text-sm font-medium text-muted">
+        Welcome back. Your work is right where you left it. Click to open.
+      </p>
     </div>
   );
 }
 
 /** Create account: React Bits Lanyard, a physics 3D badge on a strap you can grab, swing and flip. */
-function SignupArt() {
+function SignupArt({ name }: { name: string }) {
+  // Rebuild the badge face once typing pauses, so the 3D texture isn't regenerated on every keystroke.
+  const [shown, setShown] = useState(name);
+  React.useEffect(() => {
+    const t = setTimeout(() => setShown(name), 150);
+    return () => clearTimeout(t);
+  }, [name]);
+  const front = React.useMemo(() => badgeFront(shown), [shown]);
   return (
     <div className="relative hidden h-[36rem] overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/10 via-sunken to-sunken shadow-depth-lg lg:block">
       <div aria-hidden className="landing-grid absolute inset-0 opacity-60" />
       <div className="absolute inset-0">
-        <Lanyard frontImage="/badge/front.svg" backImage="/badge/back.svg" finish="glossy" metal="silver" strapColor="#0e7a5f"
+        <Lanyard frontImage={front} backImage="/badge/back.svg" finish="glossy" metal="silver" strapColor="#0e7a5f"
           strapWidth={0.9} strapLength={0.36} size={0.58} breeze={0.45} cornerRadius={0.08} />
       </div>
       <p className="pointer-events-none absolute inset-x-0 bottom-6 text-center text-sm font-medium text-muted">

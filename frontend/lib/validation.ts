@@ -4,8 +4,8 @@
  * Create Account checks new details against the rules; Log In only checks fields are present.
  */
 
-export const NAME_MAX = 100;
-export const EMAIL_MAX = 254;
+export const NAME_MAX = 30;
+export const EMAIL_MAX = 30;
 export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 128;
 
@@ -15,6 +15,7 @@ export const MSG = {
   nameInvalid: "Please enter a valid name.",
   emailRequired: "Please enter your email address.",
   emailInvalid: "Please enter a valid email address.",
+  emailTooLong: `Your email must not exceed ${EMAIL_MAX} characters.`,
   passwordRequired: "Please enter a password.",
   passwordShort: `Your password must contain at least ${PASSWORD_MIN} characters.`,
   passwordLong: `Your password must not exceed ${PASSWORD_MAX} characters.`,
@@ -58,7 +59,8 @@ const LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
 export function emailError(value: string): string | null {
   const email = (value || "").trim();
   if (!email) return MSG.emailRequired;
-  if (email.length > EMAIL_MAX || /\s/.test(email) || email.split("@").length !== 2) return MSG.emailInvalid;
+  if (email.length > EMAIL_MAX) return MSG.emailTooLong;
+  if (/\s/.test(email) || email.split("@").length !== 2) return MSG.emailInvalid;
   const [local, domain] = email.split("@");
   const labels = domain.split(".");
   const ok = local.length > 0 && local.length <= 64 && domain.length <= 253 && LOCAL.test(local) &&

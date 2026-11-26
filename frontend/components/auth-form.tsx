@@ -23,7 +23,7 @@ function EmailField({ value, onChange, onBlur, error, inputRef, autoComplete }: 
     <div className="grid gap-1.5">
       <Field label="Email" error={error}>
         <Input ref={inputRef} type="email" inputMode="email" autoComplete={autoComplete} autoCapitalize="none" spellCheck={false}
-          maxLength={EMAIL_MAX + 10} value={value} aria-invalid={!!error} placeholder="name@example.com"
+          maxLength={EMAIL_MAX} value={value} aria-invalid={!!error} placeholder="name@example.com"
           className={cn(error && "ring-bad/70 focus:ring-bad/70")} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />
       </Field>
       {suggestion && !error && (
@@ -85,10 +85,10 @@ export function RegisterForm() {
   if (sentTo) return <CheckInbox email={sentTo} />;
 
   return (
-    <AuthShell brand scene="signup" title="Create your account" sub="ATS score, best-fit jobs and fixes in under a minute.">
+    <AuthShell brand scene="signup" who={full_name} title="Create your account" sub="ATS score, best-fit jobs and fixes in under a minute.">
       <form onSubmit={submit} className="grid gap-4" noValidate>
         <Field label="Full name" error={f.shown("full_name", errors.full_name)}>
-          <Input ref={refs.full_name} autoComplete="name" maxLength={NAME_MAX + 50} value={full_name} placeholder="Ananya Rao"
+          <Input ref={refs.full_name} autoComplete="name" maxLength={NAME_MAX} value={full_name} placeholder="Ananya Rao"
             aria-invalid={!!f.shown("full_name", errors.full_name)}
             className={cn(f.shown("full_name", errors.full_name) && "ring-bad/70 focus:ring-bad/70")}
             onChange={(e) => f.set("full_name", e.target.value)} onBlur={() => f.blur("full_name")} />
@@ -183,7 +183,7 @@ export function LoginForm() {
   }
 
   return (
-    <AuthShell brand scene="login" title="Log in" sub="Pick up where you left off.">
+    <AuthShell brand scene="login" who={email} title="Log in" sub="Pick up where you left off.">
       {notice && !f.formErr && <Notice>{notice}</Notice>}
       <form onSubmit={submit} className="grid gap-4" noValidate>
         <EmailField value={email} onChange={(v) => f.set("email", v)} onBlur={() => f.blur("email")}

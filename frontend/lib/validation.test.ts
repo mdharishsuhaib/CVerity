@@ -10,9 +10,9 @@ describe("full name", () => {
     "सायरा बानो", "முகமது ஹாரிஸ்", "ಸುಹೈಬ್", "محمد حارث", "李小龙", "Ольга", "Γιώργος"])("accepts %s", (n) => {
     expect(nameError(`  ${n}  `)).toBeNull();
   });
-  it("limits to 100 characters", () => {
-    expect(nameError("a".repeat(100))).toBeNull();
-    expect(nameError("a".repeat(101))).toBe(MSG.nameTooLong);
+  it("limits to 30 characters", () => {
+    expect(nameError("a".repeat(30))).toBeNull();
+    expect(nameError("a".repeat(31))).toBe(MSG.nameTooLong);
   });
   it.each(["Ananya\nMehta", "Ananya\u0000", "An\u202eanya", "Ananya\u001b[31m", "12345", "...", "John3", "<script>", "a@b"])(
     "rejects %j", (n) => expect(nameError(n)).toBe(MSG.nameInvalid));
@@ -20,9 +20,13 @@ describe("full name", () => {
 
 describe("email", () => {
   it("requires an email", () => expect(emailError("  ")).toBe(MSG.emailRequired));
-  it.each(["plain", "a@@b.com", "a@b@c.com", "a b@c.com", "a@b", "@x.com", "a@-x.com", "a..b@x.com", "x".repeat(65) + "@x.com"])(
+  it.each(["plain", "a@@b.com", "a@b@c.com", "a b@c.com", "a@b", "@x.com", "a@-x.com", "a..b@x.com"])(
     "rejects %j", (e) => expect(emailError(e)).toBe(MSG.emailInvalid));
-  it.each(["ananya@example.com", "  Ananya.S+jobs@Sub.Example.co.in  "])("accepts %j", (e) => expect(emailError(e)).toBeNull());
+  it("limits to 30 characters", () => {
+    expect(emailError("a".repeat(24) + "@x.com")).toBeNull();
+    expect(emailError("a".repeat(25) + "@x.com")).toBe(MSG.emailTooLong);
+  });
+  it.each(["ananya@example.com", "  Ananya.S+jobs@Example.co.in  "])("accepts %j", (e) => expect(emailError(e)).toBeNull());
   it("suggests fixes for common typos", () => {
     expect(emailSuggestion("Ananya@gmial.com")).toBe("ananya@gmail.com");
     expect(emailSuggestion("ananya@gmail.com")).toBeNull();

@@ -14,7 +14,7 @@ export const Stack = dynamic(() => import("./rb/Stack"), { ssr: false, loading: 
 export const SloshGauge = dynamic(() => import("./rb/SloshGauge"), { ssr: false, loading: none });
 export const SpotlightCard = dynamic(() => import("./rb/SpotlightCard"), { ssr: false });
 export const Grainient = dynamic(() => import("./rb/Grainient"), { ssr: false, loading: none });
-export const Antigravity = dynamic(() => import("./rb/Antigravity"), { ssr: false, loading: none });
+export const Folder = dynamic(() => import("./rb/Folder"), { ssr: false, loading: none });
 export const Lanyard = dynamic(() => import("./rb/Lanyard"), { ssr: false, loading: none });
 export const Scanner = dynamic(() => import("./rb/Scanner"), { ssr: false, loading: none });
 export const ShinyText = dynamic(() => import("./rb/ShinyText"), { ssr: false });

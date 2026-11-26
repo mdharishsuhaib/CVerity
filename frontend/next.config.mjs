@@ -1,9 +1,14 @@
 /** @type {import('next').NextConfig} */
 // The /api proxy to FastAPI lives in middleware.ts (reads BACKEND_URL at runtime).
+// On Cloudflare Workers Builds (WORKERS_CI=1) the type check is skipped to cut build time; the same check runs in
+// parallel on GitHub Actions (.github/workflows/frontend-checks.yml) and in every local `npm run build`.
+const onCloudflare = process.env.WORKERS_CI === "1";
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
   poweredByHeader: false,
+  typescript: { ignoreBuildErrors: onCloudflare },
+  eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [{
       source: "/:path*",

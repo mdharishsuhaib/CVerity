@@ -202,10 +202,3 @@ desktop.ini
 .cursor/
 .claude/
 .codex/
-
-# =====================================================================
-#  LOCAL AI ASSISTANT SKILLS  (kept on this machine, not in the repo)
-#  Installed with: npx skills add Leonxlnx/taste-skill
-# =====================================================================
-.agents/
-skills-lock.json

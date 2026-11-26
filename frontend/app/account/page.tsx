@@ -74,7 +74,7 @@ function YourData() {
     setExportErr(null);
     setExporting(true);
     try {
-      await download("/auth/export", "cverity-data.json");
+      await download("/auth/export", "cverity-data.xlsx");
     } catch (e) {
       setExportErr((e as Error).message);
     } finally {
@@ -97,7 +97,7 @@ function YourData() {
     <div className="grid gap-6 border-t border-line pt-8">
       <section className="grid gap-3">
         <h2 className="font-medium">Your data</h2>
-        <p className="text-sm text-muted">Download everything CVerity stores about you: account details, resumes and their reports, jobs, candidates and tracked applications.</p>
+        <p className="text-sm text-muted">Download everything CVerity stores about you as an Excel file: account details, resumes and their reports, jobs, candidates and tracked applications, each on its own sheet.</p>
         <FormError message={exportErr} />
         <Button variant="secondary" className="w-full" onClick={exportData} disabled={exporting}>
           <DownloadSimple size={16} />{exporting ? "Preparing..." : "Export my data"}

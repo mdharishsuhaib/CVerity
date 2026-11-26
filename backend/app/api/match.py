@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_job, owned_job, owned_resume, read_upload
 from app.core.db import get_db
+from app.core.settings import get_settings
 from app.models import Job, Resume, User
 from app.schemas import job_out, resume_summary
+from app.services import job_feeds
 from app.services.matcher import job_index, score_match
 from app.services.pipeline import analyze_resume_bytes, apply_job_fields, ensure_embeddings, get_or_compute_match
 
@@ -18,12 +21,16 @@ def match_jobs_for_resume(resume_id: int, top_k: int = Query(20, ge=1, le=100), 
     if resume.status != "ready":
         raise HTTPException(409, f"Resume is {resume.status}")
     ensure_embeddings(db, [resume])
+    # Fresh roles close to this resume are pulled from the job boards in the background (at most every few hours).
+    searching = False
+    if get_settings().job_feeds_enabled:
+        searching = job_feeds.search_for_resume(resume.id, resume.profile or {}) or job_feeds.is_searching(resume.id)
     # Stage 1: vector retrieval (cheap) -> Stage 2: full hybrid re-scoring (precise)
     candidate_ids = job_index.search(db, (resume.embeddings or {}).get("full"), k=max(top_k * 4, 60))
     if not candidate_ids:
-        ensure_embeddings(db, db.query(Job).all())
+        ensure_embeddings(db, db.query(Job).filter(Job.active.is_(True)).all())
         candidate_ids = job_index.search(db, (resume.embeddings or {}).get("full"), k=max(top_k * 4, 60))
-    jobs = db.query(Job).filter(Job.id.in_(candidate_ids)).all() if candidate_ids else []
+    jobs = db.query(Job).filter(Job.id.in_(candidate_ids), Job.active.is_(True)).all() if candidate_ids else []
     if q:
         ql = q.lower()
         jobs = [j for j in jobs if ql in j.title.lower() or ql in j.description.lower() or ql in (j.company or "").lower()]
@@ -32,7 +39,12 @@ def match_jobs_for_resume(resume_id: int, top_k: int = Query(20, ge=1, le=100), 
         bd = get_or_compute_match(db, resume, job)
         results.append({"job": job_out(job, full=False), "match": bd})
     results.sort(key=lambda r: r["match"]["score"], reverse=True)
-    return {"resume_id": resume.id, "total_considered": len(jobs), "items": results[:top_k]}
+    last = job_feeds.last_refresh(db)
+    live = {"enabled": get_settings().job_feeds_enabled, "searching": searching,
+            "updated_at": last.isoformat() if last else None,
+            "open_jobs": db.query(func.count(Job.id)).filter(Job.active.is_(True), Job.source != "").scalar(),
+            "sources": [{"key": k, **v} for k, v in job_feeds.SOURCES.items()]}
+    return {"resume_id": resume.id, "total_considered": len(jobs), "items": results[:top_k], "live": live}
 
 
 @router.get("/job/{job_id}/candidates")

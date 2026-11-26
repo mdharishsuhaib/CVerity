@@ -17,10 +17,10 @@ export default function StepsStack() {
       {STEPS.map(([Icon, n, t, d]) => (
         <ScrollStackItem key={n} itemClassName="!h-64 md:!h-60 !p-8 md:!p-10">
           <div className="grid h-full gap-6 md:grid-cols-[auto_1fr] md:items-center md:gap-10">
-            <div className="flex items-center gap-4 md:block">
-              <span className="font-mono text-5xl font-semibold tracking-tight text-accent/25 md:text-7xl">{n}</span>
-              <Icon size={30} weight="regular" className="text-accent md:mt-3" />
-            </div>
+                  <div className="flex items-center gap-4 md:inline-flex md:flex-col md:items-center md:gap-3">
+                    <span className="font-mono text-5xl font-semibold leading-none tracking-tight text-accent/25 md:text-7xl">{n}</span>
+                    <Icon size={30} weight="regular" className="shrink-0 text-accent" aria-hidden />
+                  </div>
             <div>
               <h3 className="text-2xl font-semibold tracking-tight md:text-3xl">{t}</h3>
               <p className="mt-3 max-w-[52ch] text-base leading-relaxed text-muted md:text-lg">{d}</p>

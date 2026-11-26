@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BookmarkSimple, CaretDown, ChatsCircle, Copy, DownloadSimple, EnvelopeSimple, Sparkle } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowSquareOut, BookmarkSimple, CaretDown, ChatsCircle, CheckCircle, Copy, DownloadSimple, EnvelopeSimple, PaperPlaneTilt, Sparkle } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { RequireAuth } from "@/components/providers";
@@ -134,42 +134,91 @@ function AtsReport({ r }: { r: any }) {
 const matchesQuery = (id: string, q = "") => ({
   queryKey: ["matches", id, q],
   queryFn: () => api(`/match/resume/${id}/jobs?top_k=20${q ? `&q=${encodeURIComponent(q)}` : ""}`),
+  // Live jobs keep arriving from the job boards: poll fast while a search runs, then every few minutes.
+  refetchInterval: (query: any) => (query.state.data?.live?.searching ? 6_000 : 5 * 60_000),
+  refetchOnWindowFocus: true,
 });
+
+function timeAgo(iso?: string | null) {
+  if (!iso) return "";
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} d ago`;
+}
 
 function Matches({ id, onPick }: { id: string; onPick: (j: { id: number; title: string }, tab: string) => void }) {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const { data, isLoading, error } = useQuery(matchesQuery(id, q));
+  const live = data?.live;
   const apps = useQuery({ queryKey: ["applications"], queryFn: () => api("/applications") });
-  const tracked = new Set<number>((apps.data?.items ?? []).map((a: any) => a.job?.id));
+  const byJob = new Map<number, any>((apps.data?.items ?? []).map((a: any) => [a.job?.id, a]));
   const track = useMutation({
     mutationFn: (jobId: number) => api("/applications", { method: "POST", body: JSON.stringify({ job_id: jobId, resume_id: Number(id) }) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["applications"] }),
   });
+  const apply = useMutation({
+    mutationFn: (jobId: number) => api("/applications/apply", { method: "POST", body: JSON.stringify({ job_id: jobId, resume_id: Number(id) }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["applications"] }),
+  });
   return (
     <div className="grid gap-4">
+      {live?.enabled && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-sunken/60 px-3 py-2 text-xs text-muted" aria-live="polite">
+          <span className={cn("h-2 w-2 rounded-full", live.searching ? "animate-pulse bg-accent" : "bg-accent")} aria-hidden />
+          {live.searching ? "Finding new openings for this resume..." : `Live jobs, ${live.open_jobs.toLocaleString()} open now`}
+          {live.updated_at && !live.searching && <span className="text-subtle">· updated {timeAgo(live.updated_at)}</span>}
+          <span className="text-subtle">· from{" "}
+            {live.sources.map((s: any, i: number) => (
+              <span key={s.key}>{i > 0 && (i === live.sources.length - 1 ? " and " : ", ")}
+                <a href={s.home} target="_blank" rel="noopener" className="underline decoration-line underline-offset-2 hover:text-ink">{s.label}</a>
+              </span>
+            ))}
+          </span>
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">{data ? `Top ${data.items.length} of ${data.total_considered} jobs, best match first.` : " "}</p>
         <label className="w-full sm:w-72"><span className="sr-only">Filter jobs</span><Input placeholder="Filter: remote, python, Pune..." value={q} onChange={(e) => setQ(e.target.value)} /></label>
       </div>
-      <ErrorNote error={error || track.error} />
+      <ErrorNote error={error || track.error || apply.error} />
       {isLoading ? <ListSkeleton rows={4} /> : data?.items.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted">No jobs match that filter.</p>
+        <p className="py-10 text-center text-sm text-muted">{live?.searching ? "Fetching live openings, this takes a few seconds..." : q ? "No jobs match that filter." : "No open jobs right now. New ones arrive every few hours."}</p>
       ) : data?.items.map((it: any) => {
         const job = { id: it.job.id, title: it.job.title };
-        const isTracked = tracked.has(it.job.id);
+        const app = byJob.get(it.job.id);
+        const applied = app && app.status !== "saved";
+        const external = it.job.apply_url as string | null;
+        const subtitle = [it.job.company, it.job.location, it.job.posted_at && `posted ${timeAgo(it.job.posted_at)}`].filter(Boolean).join(", ");
         return (
-          <MatchRow key={it.job.id} title={it.job.title} subtitle={[it.job.company, it.job.location].filter(Boolean).join(", ")} m={it.match}
+          <MatchRow key={it.job.id} title={it.job.title} subtitle={subtitle} m={it.match}
+            source={external && it.job.source_label ? { label: it.job.source_label, href: external } : undefined}
             actions={<>
-              {isTracked ? (
+              {applied ? (
                 <Link href="/seeker/applications" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium text-accent-ink hover:bg-sunken">
-                  <BookmarkSimple size={14} weight="fill" />Tracking
+                  <CheckCircle size={14} weight="fill" />Applied
+                </Link>
+              ) : external ? (
+                // Live job: the application happens on the job board; CVerity tracks it on your board.
+                <a href={external} target="_blank" rel="noopener" onClick={() => apply.mutate(it.job.id)}
+                  className="inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-gradient-to-b from-accent to-accent-hover px-3 text-[13px] font-medium text-accent-on shadow-button transition duration-200 ease-out hover:-translate-y-px hover:brightness-110 active:scale-[0.98]">
+                  <ArrowSquareOut size={14} weight="bold" />Apply on {it.job.source_label}
+                </a>
+              ) : (
+                <Button size="sm" disabled={apply.isPending && apply.variables === it.job.id} onClick={() => apply.mutate(it.job.id)}>
+                  <PaperPlaneTilt size={14} weight="fill" />{apply.isPending && apply.variables === it.job.id ? "Applying..." : "Apply"}
+                </Button>
+              )}
+              {!applied && (app ? (
+                <Link href="/seeker/applications" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium text-accent-ink hover:bg-sunken">
+                  <BookmarkSimple size={14} weight="fill" />Saved
                 </Link>
               ) : (
                 <Button size="sm" variant="quiet" disabled={track.isPending && track.variables === it.job.id} onClick={() => track.mutate(it.job.id)}>
                   <BookmarkSimple size={14} />Save job
                 </Button>
-              )}
+              ))}
               <Button size="sm" variant="secondary" onClick={() => onPick(job, "cover")}><EnvelopeSimple size={14} />Cover letter</Button>
               <Button size="sm" variant="secondary" onClick={() => onPick(job, "coach")}><Sparkle size={14} weight="fill" />Tailor</Button>
             </>} />

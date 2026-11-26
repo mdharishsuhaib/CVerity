@@ -1,7 +1,7 @@
-# CVerity API image. Works with docker compose and on Hugging Face Spaces (Docker SDK).
+# CVerity API image (full ML mode), used by docker compose.
 FROM python:3.11-slim
 
-# Hugging Face Spaces run containers as user 1000; use the same user everywhere.
+# Run as a non-root user.
 RUN useradd -m -u 1000 user
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
     HF_HOME=/home/user/.cache/huggingface \
     PATH=/home/user/.local/bin:$PATH \
     HOST=0.0.0.0 \
-    PORT=7860 \
+    PORT=8000 \
     WEB_CONCURRENCY=2 \
     APP_ENV=production
 WORKDIR /app
@@ -28,5 +28,5 @@ USER user
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 ENV HF_HUB_OFFLINE=1
 
-EXPOSE 7860
+EXPOSE 8000
 CMD ["python", "serve.py"]

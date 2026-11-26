@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CaretDown, DownloadSimple, Eye, EyeSlash, UploadSimple } from "@phosphor-icons/react";
+import { ArrowLeft, CaretDown, DownloadSimple, Eye, EyeSlash, Trash, UploadSimple, X } from "@phosphor-icons/react";
 import { API_URL, api, download } from "@/lib/api";
 import { cn, scoreColor } from "@/lib/utils";
 import { RequireAuth } from "@/components/providers";
@@ -29,13 +29,15 @@ function JobDetail() {
   const qs = new URLSearchParams({ min_score: String(flt.min_score || 0), min_years: String(flt.min_years || 0), skills: flt.skills, ...(flt.stage ? { stage: flt.stage } : {}) }).toString();
   const { data, isLoading, error } = useQuery({
     queryKey: ["cands", id, qs], queryFn: () => api(`/match/job/${id}/candidates?${qs}`),
-    refetchInterval: (q) => (q.state.data?.items?.some((i: any) => !i.match && i.resume.status !== "failed") ? 2000 : false),
+    // Fast while resumes are being analyzed; otherwise every 15 seconds so new applicants appear on their own.
+    refetchInterval: (q) => (q.state.data?.items?.some((i: any) => !i.match && i.resume.status !== "failed") ? 2000 : 15_000),
+    refetchOnWindowFocus: true,
   });
-  const pipe = useQuery({ queryKey: ["pipeline", id], queryFn: () => api<{ stages: string[]; counts: Record<string, number> }>(`/recruiter/jobs/${id}/pipeline`) });
+  const pipe = useQuery({ queryKey: ["pipeline", id], queryFn: () => api<{ stages: string[]; counts: Record<string, number> }>(`/recruiter/jobs/${id}/pipeline`), refetchInterval: 15_000 });
   const setCand = useMutation({
     mutationFn: ({ rid, ...body }: { rid: number; stage?: string; notes?: string }) =>
       api(`/recruiter/jobs/${id}/candidates/${rid}`, { method: "PATCH", body: JSON.stringify(body) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["cands", id] }); qc.invalidateQueries({ queryKey: ["pipeline", id] }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["cands", id] }); qc.invalidateQueries({ queryKey: ["pipeline", id] }); qc.invalidateQueries({ queryKey: ["stats"] }); },
   });
   const up = useMutation({
     mutationFn: (files: File[]) => { const fd = new FormData(); files.forEach((f) => fd.append("files", f)); return api(`/recruiter/jobs/${id}/resumes`, { method: "POST", form: fd }); },
@@ -43,8 +45,39 @@ function JobDetail() {
   });
   // Blind screening: hide names and file names (which often contain names) so candidates are judged on skills.
   const nameOf = (r: any) => (blind ? `Candidate ${r.id}` : r.candidate_name);
-  const cmp = useQuery({ queryKey: ["cmp", id, sel], enabled: compare && sel.length > 1, queryFn: () => api(`/recruiter/jobs/${id}/compare?ids=${sel.join(",")}`) });
-  const toggle = (rid: number) => setSel((s) => (s.includes(rid) ? s.filter((x) => x !== rid) : s.length < 5 ? [...s, rid] : s));
+  const items: any[] = data?.items ?? [];
+  const visibleIds = items.map((i) => i.resume.id as number);
+  // Selection drives bulk actions (any number) and Compare (the first 5 scored ones).
+  const selected = sel.filter((rid) => visibleIds.includes(rid));
+  const compareIds = items.filter((i) => i.match && selected.includes(i.resume.id)).map((i) => i.resume.id as number).slice(0, 5);
+  const allOn = visibleIds.length > 0 && selected.length === visibleIds.length;
+  const someOn = selected.length > 0 && !allOn;
+  const cmp = useQuery({ queryKey: ["cmp", id, compareIds], enabled: compare && compareIds.length > 1, queryFn: () => api(`/recruiter/jobs/${id}/compare?ids=${compareIds.join(",")}`) });
+  const toggle = (rid: number) => setSel((s) => (s.includes(rid) ? s.filter((x) => x !== rid) : [...s, rid]));
+  const toggleAll = () => setSel(allOn ? [] : visibleIds);
+  const refreshAll = () => {
+    qc.invalidateQueries({ queryKey: ["cands", id] }); qc.invalidateQueries({ queryKey: ["pipeline", id] });
+    qc.invalidateQueries({ queryKey: ["stats"] }); qc.invalidateQueries({ queryKey: ["cmp", id] });
+  };
+  const [bulkStage, setBulkStage] = useState("shortlisted");
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [confirmOne, setConfirmOne] = useState<number | null>(null);
+  const stageMany = useMutation({
+    mutationFn: (body: { resume_ids: number[]; stage: string }) =>
+      api<{ updated: number; stage: string }>(`/recruiter/jobs/${id}/candidates/bulk-stage`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: refreshAll,
+  });
+  const removeMany = useMutation({
+    mutationFn: (ids: number[]) => api<{ deleted: number }>(`/recruiter/jobs/${id}/candidates/bulk-delete`, { method: "POST", body: JSON.stringify({ resume_ids: ids }) }),
+    onSuccess: (_r, ids) => { setSel((s) => s.filter((x) => !ids.includes(x))); setConfirmBulk(false); setCompare(false); refreshAll(); },
+  });
+  const removeOne = useMutation({
+    mutationFn: (rid: number) => api(`/recruiter/jobs/${id}/candidates/${rid}`, { method: "DELETE" }),
+    onSuccess: (_r, rid) => { setSel((s) => s.filter((x) => x !== rid)); setConfirmOne(null); if (open === rid) setOpen(null); refreshAll(); },
+  });
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (selectAllRef.current) selectAllRef.current.indeterminate = someOn; }, [someOn]);
+  useEffect(() => { if (!selected.length) setConfirmBulk(false); }, [selected.length]);
   const processing = data?.items?.filter((i: any) => !i.match && i.resume.status !== "failed").length ?? 0;
 
   // Real-time progress over Server-Sent Events while any candidate is still being analyzed.
@@ -89,7 +122,8 @@ function JobDetail() {
           }} />
           <Button onClick={() => input.current?.click()} disabled={up.isPending}><UploadSimple size={16} weight="bold" />{up.isPending ? "Uploading..." : "Add resumes"}</Button>
           <Button variant="secondary" onClick={() => download(`/recruiter/jobs/${id}/export`, `candidates_${id}.csv`)}><DownloadSimple size={16} />Export CSV</Button>
-          <Button variant="secondary" disabled={sel.length < 2} onClick={() => setCompare(!compare)}>{compare ? "Close" : `Compare ${sel.length || ""}`.trim()}</Button>
+          <Button variant="secondary" disabled={compareIds.length < 2} onClick={() => setCompare(!compare)}
+            title="Select 2 to 5 scored candidates to compare them side by side">{compare ? "Close" : `Compare ${compareIds.length || ""}`.trim()}</Button>
           <Button variant={blind ? "primary" : "secondary"} aria-pressed={blind} onClick={() => setBlind(!blind)}
             title="Hide candidate names and file names so you screen on skills and experience only">
             {blind ? <EyeSlash size={16} /> : <Eye size={16} />}{blind ? "Blind: on" : "Blind mode"}
@@ -118,7 +152,7 @@ function JobDetail() {
         </nav>
       )}
 
-      <ErrorNote error={up.error || error || setCand.error} />
+      <ErrorNote error={up.error || error || setCand.error || stageMany.error || removeMany.error || removeOne.error} />
       {up.data?.rejected?.length > 0 && <p className="text-sm text-warn">Skipped {up.data.rejected.map((r: any) => r.filename).join(", ")}: unsupported, empty or over 10 MB.</p>}
       {processing > 0 && (
         <p className="inline-flex items-center gap-2 text-sm text-muted" aria-live="polite">
@@ -155,25 +189,58 @@ function JobDetail() {
       ) : data?.items.length === 0 ? (
         <Empty title="No candidates yet" body="Upload up to 100 resumes at once. Each one is scored against this job in the background." />
       ) : (
+        <div className="grid gap-3">
+        {selected.length > 0 && (
+          <div role="region" aria-label="Bulk actions" className="fade-up flex flex-wrap items-center gap-2 rounded-xl bg-surface px-4 py-3 shadow-depth">
+            <p className="mr-1 text-sm font-medium"><span className="font-mono tabular">{selected.length}</span> selected</p>
+            <label className="flex items-center gap-2 text-sm text-muted">Move to
+              <Select className="h-8 w-36 text-xs" value={bulkStage} onChange={(e) => setBulkStage(e.target.value)} aria-label="Stage for selected candidates">
+                {(pipe.data?.stages ?? Object.keys(STAGE_LABELS)).map((s) => <option key={s} value={s}>{STAGE_LABELS[s] ?? s}</option>)}
+              </Select>
+            </label>
+            <Button size="sm" disabled={stageMany.isPending} onClick={() => stageMany.mutate({ resume_ids: selected, stage: bulkStage })}>
+              {stageMany.isPending ? "Updating..." : "Apply stage"}
+            </Button>
+            {confirmBulk ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Button size="sm" variant="danger" disabled={removeMany.isPending} onClick={() => removeMany.mutate(selected)}>
+                  <Trash size={14} weight="bold" />{removeMany.isPending ? "Deleting..." : `Delete ${selected.length}`}
+                </Button>
+                <Button size="sm" variant="quiet" onClick={() => setConfirmBulk(false)}>Cancel</Button>
+              </span>
+            ) : (
+              <Button size="sm" variant="secondary" className="text-bad" onClick={() => setConfirmBulk(true)}><Trash size={14} />Delete</Button>
+            )}
+            <Button size="sm" variant="quiet" className="ml-auto" onClick={() => setSel([])}><X size={14} />Clear</Button>
+            {stageMany.isSuccess && !stageMany.isPending && (
+              <p className="w-full text-xs text-subtle" aria-live="polite">Moved {stageMany.data.updated} to {STAGE_LABELS[stageMany.data.stage]}. Applicants&apos; boards update too.</p>
+            )}
+          </div>
+        )}
         <div className="relative overflow-x-auto rounded-2xl bg-surface shadow-depth-lg">
-          <table className="w-full min-w-[860px] text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-sunken/60 text-left text-xs text-subtle">
               <tr className="border-b border-line">
-                <th className="w-10 p-3"><span className="sr-only">Select</span></th>
+                <th className="w-10 p-3">
+                  <input ref={selectAllRef} type="checkbox" aria-label={allOn ? "Clear selection" : "Select all candidates"} title="Select all"
+                    className="h-4 w-4 accent-[rgb(var(--accent))]" checked={allOn} onChange={toggleAll} />
+                </th>
                 <th className="w-10 py-3 font-medium">#</th><th className="py-3 font-medium">Candidate</th><th className="py-3 font-medium">Match</th>
                 <th className="py-3 font-medium">Stage</th>
-                <th className="py-3 font-medium">Experience</th><th className="py-3 font-medium">ATS</th><th className="py-3 pr-3 font-medium">Missing required</th><th className="w-10" />
+                <th className="py-3 font-medium">Experience</th><th className="py-3 font-medium">ATS</th><th className="py-3 pr-3 font-medium">Missing required</th>
+                <th className="w-24"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
-              {data?.items.map((it: any) => {
+              {items.map((it: any) => {
                 const isOpen = open === it.resume.id;
+                const on = selected.includes(it.resume.id);
                 return (
                   <Fragment key={it.resume.id}>
-                    <tr className={cn("border-b border-line/60 transition-colors last:border-0", it.match && "cursor-pointer hover:bg-sunken/60", isOpen && "bg-sunken/60")}
+                    <tr className={cn("border-b border-line/60 transition-colors last:border-0", it.match && "cursor-pointer hover:bg-sunken/60", (isOpen || on) && "bg-sunken/60")}
                       onClick={() => it.match && setOpen(isOpen ? null : it.resume.id)}>
                       <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" aria-label={`Select ${nameOf(it.resume)}`} className="h-4 w-4 accent-[rgb(var(--accent))]" disabled={!it.match} checked={sel.includes(it.resume.id)} onChange={() => toggle(it.resume.id)} />
+                        <input type="checkbox" aria-label={`Select ${nameOf(it.resume)}`} className="h-4 w-4 accent-[rgb(var(--accent))]" checked={on} onChange={() => toggle(it.resume.id)} />
                       </td>
                       <td className="font-mono tabular text-subtle">{it.rank ?? ""}</td>
                       <td className="py-3">
@@ -193,7 +260,23 @@ function JobDetail() {
                       <td className="font-mono tabular text-muted">{it.resume.years_experience ?? "-"} yrs</td>
                       <td className="font-mono tabular text-muted">{it.resume.ats_score != null ? Math.round(it.resume.ats_score) : "-"}</td>
                       <td className="max-w-[16rem] truncate pr-3 text-bad">{it.match?.missing_required.join(", ") || <span className="text-subtle">{it.resume.error || "None"}</span>}</td>
-                      <td className="pr-3 text-subtle">{it.match && <CaretDown size={14} className={cn("transition-transform", isOpen && "rotate-180")} />}</td>
+                      <td className="pr-3 text-subtle" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          {confirmOne === it.resume.id ? (
+                            <>
+                              <Button size="sm" variant="danger" className="h-7 px-2 text-xs" disabled={removeOne.isPending}
+                                onClick={() => removeOne.mutate(it.resume.id)}>{removeOne.isPending ? "..." : "Delete"}</Button>
+                              <button className="rounded p-1 text-subtle hover:bg-sunken hover:text-ink" aria-label="Cancel" onClick={() => setConfirmOne(null)}><X size={14} /></button>
+                            </>
+                          ) : (
+                            <button className="rounded-md p-1.5 text-subtle transition hover:bg-bad-soft hover:text-bad" title="Delete candidate"
+                              aria-label={`Delete ${nameOf(it.resume)}`} onClick={() => setConfirmOne(it.resume.id)}><Trash size={15} /></button>
+                          )}
+                          {it.match && <button className="rounded-md p-1.5 hover:bg-sunken hover:text-ink" aria-label={isOpen ? "Hide breakdown" : "Show breakdown"}
+                            aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : it.resume.id)}>
+                            <CaretDown size={14} className={cn("transition-transform", isOpen && "rotate-180")} /></button>}
+                        </div>
+                      </td>
                     </tr>
                     {isOpen && (
                       <tr className="border-b border-line/60">
@@ -209,6 +292,7 @@ function JobDetail() {
               })}
             </tbody>
           </table>
+        </div>
         </div>
       )}
     </div>

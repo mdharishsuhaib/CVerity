@@ -12,6 +12,7 @@ os.environ["LLM_FALLBACK_PROVIDER"] = "none"
 for _key in ("OPENAI_API_KEY", "OLLAMA_API_KEY", "OPENROUTER_API_KEY"):
     os.environ[_key] = ""
 os.environ.setdefault("AUTO_SEED", "false")
+os.environ["JOB_FEEDS_ENABLED"] = "false"  # tests never call the live job boards
 os.environ.setdefault("EMAIL_CHECK_DELIVERABILITY", "false")  # tests must not depend on DNS
 os.environ.setdefault("PASSWORD_BREACH_CHECK", "false")  # or on the Have I Been Pwned API
 os.environ.setdefault("RESEND_API_KEY", "")

@@ -57,6 +57,8 @@ def list_jobs(q: str | None = None, mine: bool = False, location: str | None = N
     query = db.query(Job)
     if mine:
         query = query.filter(Job.owner_id == user.id)
+    else:
+        query = query.filter(Job.active.is_(True))  # closed live jobs are no longer open
     if q:
         like = f"%{q}%"
         query = query.filter(or_(Job.title.ilike(like), Job.company.ilike(like), Job.description.ilike(like)))

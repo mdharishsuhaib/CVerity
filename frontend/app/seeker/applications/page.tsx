@@ -17,13 +17,20 @@ const DOT: Record<string, string> = { saved: "bg-subtle", applied: "bg-accent/60
 
 type App = {
   id: number; status: string; notes: string; resume_id: number | null; match_score: number | null;
-  applied_at: string | null; updated_at: string | null;
-  job: { id: number; title: string; company: string; location: string };
+  applied_at: string | null; updated_at: string | null; sent_to_recruiter: boolean; recruiter_stage: string | null;
+  job: { id: number; title: string; company: string; location: string; apply_url?: string | null; source_label?: string | null; active?: boolean };
 };
+
+const STAGE_LABEL: Record<string, string> = { new: "Received", shortlisted: "Shortlisted", interview: "Interview", offer: "Offer", hired: "Hired", rejected: "Not selected" };
 
 function Applications() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useQuery({ queryKey: ["applications"], queryFn: () => api<{ statuses: string[]; items: App[] }>("/applications") });
+  // Hiring teams move applications on their side; checking every 15 seconds (and on returning to the tab)
+  // keeps this board in step without a manual refresh.
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["applications"], queryFn: () => api<{ statuses: string[]; items: App[] }>("/applications"),
+    refetchInterval: 15_000, refetchOnWindowFocus: true,
+  });
   const update = useMutation({
     mutationFn: ({ id, ...body }: { id: number; status?: string; notes?: string }) => api(`/applications/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["applications"] }),
@@ -41,7 +48,7 @@ function Applications() {
       <PageHeader title="Applications" sub={items.length ? `${items.length} tracked, ${active} in progress.` : "Track the jobs you're going after, from saved to offer."} />
       <ErrorNote error={error || update.error || remove.error} />
       {isLoading ? <ListSkeleton /> : items.length === 0 ? (
-        <Empty title="Nothing tracked yet" body="Open a resume's job matches and press Track on the roles you want to follow."
+        <Empty title="Nothing tracked yet" body="Open a resume's job matches and press Apply, or Save job to decide later."
           action={<Link href="/seeker"><Button>My resumes</Button></Link>} />
       ) : (
         <div className="relative -mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
@@ -81,6 +88,16 @@ function Card({ a, statuses, onChange, onDelete }: { a: App; statuses: string[];
         {a.match_score != null && <span className={cn("font-mono text-sm font-semibold tabular", scoreColor(a.match_score))} title="Match score">{Math.round(a.match_score)}</span>}
       </div>
       {a.applied_at && <p className="text-xs text-subtle">Applied {new Date(a.applied_at).toLocaleDateString()}</p>}
+      {a.job.apply_url && (
+        <p className="text-xs text-subtle">
+          <a href={a.job.apply_url} target="_blank" rel="noopener" className="underline decoration-line underline-offset-2 hover:text-ink">
+            {a.job.active ? `Open on ${a.job.source_label ?? "job board"}` : `Closed on ${a.job.source_label ?? "job board"}`}
+          </a>
+        </p>
+      )}
+      {a.sent_to_recruiter && a.recruiter_stage && (
+        <p className="text-xs"><span className="text-subtle">Hiring team: </span><span className="font-medium text-accent-ink">{STAGE_LABEL[a.recruiter_stage] ?? a.recruiter_stage}</span></p>
+      )}
       {editing ? (
         <div className="grid gap-2">
           <Textarea rows={3} value={notes} maxLength={5000} onChange={(e) => setNotes(e.target.value)} placeholder="Recruiter name, salary, next steps..." aria-label="Notes" autoFocus />
@@ -94,15 +111,21 @@ function Card({ a, statuses, onChange, onDelete }: { a: App; statuses: string[];
       ) : null}
       <div className="flex items-center gap-1 pt-1">
         <label className="flex-1"><span className="sr-only">Status</span>
-          <Select className="h-8 text-xs" value={a.status} onChange={(e) => onChange({ status: e.target.value })}>
-            {statuses.map((s) => <option key={s} value={s}>{LABELS[s]}</option>)}
-          </Select>
+          {a.sent_to_recruiter ? (
+            <span className="flex h-8 items-center rounded-md bg-sunken px-2.5 text-xs text-muted" title="The hiring team updates this status">
+              {LABELS[a.status]} · updated by hiring team
+            </span>
+          ) : (
+            <Select className="h-8 text-xs" value={a.status} onChange={(e) => onChange({ status: e.target.value })}>
+              {statuses.map((s) => <option key={s} value={s}>{LABELS[s]}</option>)}
+            </Select>
+          )}
         </label>
         {!editing && <Button size="sm" variant="quiet" className="px-2" aria-label="Edit notes" onClick={() => setEditing(true)}><NotePencil size={14} /></Button>}
         {confirm ? (
-          <Button size="sm" variant="danger" className="px-2" onClick={onDelete} onBlur={() => setConfirm(false)} autoFocus>Remove</Button>
+          <Button size="sm" variant="danger" className="px-2" onClick={onDelete} onBlur={() => setConfirm(false)} autoFocus>{a.sent_to_recruiter ? "Withdraw" : "Remove"}</Button>
         ) : (
-          <Button size="sm" variant="quiet" className="px-2" aria-label="Stop tracking" onClick={() => setConfirm(true)}><Trash size={14} /></Button>
+          <Button size="sm" variant="quiet" className="px-2" aria-label={a.sent_to_recruiter ? "Withdraw application" : "Stop tracking"} onClick={() => setConfirm(true)}><Trash size={14} /></Button>
         )}
       </div>
     </Panel>

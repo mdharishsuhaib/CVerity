@@ -64,15 +64,21 @@ can audit line by line, and ranks many candidates at once.
    certifications.
 4. It runs **8 ATS checks** and gives a 0 to 100 score with an A to E grade, plus a fix for
    each problem.
-5. It ranks every open job against the resume with an **explainable match score**:
+5. It ranks **real, currently open jobs** against the resume with an **explainable match score**:
    matched, close and missing skills, experience fit, education and title, each shown as
-   its own number.
+   its own number. Jobs come live from public job boards (Himalayas, Jobicy, Remote OK and
+   Arbeitnow) and are refreshed around the clock, alongside jobs posted by recruiters on CVerity.
 6. The optional **AI coach** (Groq, OpenAI or Ollama Cloud, with an automatic backup) rewrites weak bullet points and
    writes a summary tailored to one job. Contact details are removed before any text
    reaches the model, and a rule-based coach takes over if the model is unavailable.
 7. **Recruiters** paste a job description (requirements are extracted automatically),
    bulk-upload up to 100 resumes, watch them process live, then filter, compare side by
-   side and export the ranked shortlist as CSV.
+   side, move or delete many candidates at once, and export the ranked shortlist as CSV.
+8. **Job seekers apply in one click** from their job matches. For a recruiter's job on CVerity,
+   the application lands in the hiring team's candidate list, and every stage the team sets
+   (shortlisted, interview, offer, hired, rejected) updates the seeker's Applications board
+   automatically. For a live job-board posting, Apply opens the original listing and the
+   application is tracked on the seeker's board.
 
 ---
 
@@ -94,10 +100,28 @@ can audit line by line, and ranks many candidates at once.
   with live progress over Server-Sent Events (and polling as a fallback).
 - **Ranked shortlist and CSV export** -- Filter by minimum score, minimum years or
   must-have skills; compare up to 5 candidates side by side; download the ranking.
+- **Real-time jobs, 24/7** -- Job matches use real open roles pulled from free public job
+  board APIs (Himalayas, Jobicy, Remote OK, Arbeitnow; no API keys). The server refreshes them on
+  startup and every 3 hours, and searches the boards for each resume's title and top skills when
+  its matches are opened. Every card credits its board ("via Himalayas"), shows when it was
+  posted, and **Apply on <board>** opens the original listing. Expired, old (45+ days) or
+  vanished postings close automatically. The sample starter jobs retire once real jobs arrive.
+- **Bulk candidate actions** -- A delete button on every candidate (uploaded or applied), a
+  **Select all** checkbox, and a bulk bar to move every selected candidate to one stage or
+  delete them all at once. Applicants' boards follow the change.
+- **One-click Apply with live status** -- Applying sends the resume to the hiring team;
+  their pipeline stage drives the applicant's board, and the recruiter dashboard counts
+  (candidates, average match, scored 65 or higher) update every 15 seconds as people apply.
+- **Email verification and password reset** -- Sent through Brevo's free plan from a verified
+  Gmail sender (no domain needed). A twice-monthly GitHub Action keeps the Brevo key and the
+  scheduled workflows active even when nobody touches the repo.
+- **Export my data as Excel** -- One styled `.xlsx` workbook with a sheet each for account
+  details, resumes, resume reports, jobs, candidates and applications.
 - **Quick Match** -- Score any resume against any pasted job description without saving
   anything (`/analyze`).
-- **Polished, accessible UI** -- Two colour themes, animated SVG illustrations that
-  respect reduced-motion settings, and no distracting hover tooltips.
+- **Polished, accessible UI** -- Two colour themes, 3D and scroll animations that
+  respect reduced-motion settings, names up to 30 characters on the 3D folder and ID card,
+  and a homepage that always reopens at the top on reload (instantly, without scrolling up).
 
 ---
 
@@ -121,15 +145,18 @@ flowchart TD
         ATS["ats.py<br/>8 ATS checks"]
         Matcher["matcher.py<br/>5-part score + top-K index"]
         Coach["llm.py<br/>AI coach + PII redaction"]
-        SSE["recruiter.py<br/>bulk upload + live events"]
+        SSE["recruiter.py<br/>bulk upload, bulk actions, live events"]
+        Feeds["job_feeds.py<br/>live jobs, refreshed every 3 h"]
     end
 
     subgraph Data["Storage"]
         DB[("Supabase PostgreSQL<br/>(SQLite locally)")]
     end
 
-    subgraph External["External (optional)"]
+    subgraph External["External"]
         LLM[("Groq / OpenAI / Ollama Cloud")]
+        Boards[("Himalayas / Jobicy /<br/>Remote OK / Arbeitnow")]
+        Brevo[("Brevo email")]
     end
 
     UI -- "same-origin /api calls" --> Proxy
@@ -139,6 +166,10 @@ flowchart TD
     SSE --> Parser
     Matcher --> DB
     ATS --> DB
+    Feeds -- "public job APIs" --> Boards
+    Feeds --> Extractor
+    Feeds --> DB
+    Auth -- "verify / reset emails" --> Brevo
     Coach -- "redacted text" --> LLM
     SSE -- "progress stream" --> UI
 ```
@@ -148,8 +179,8 @@ flowchart TD
   the frontend's own address; `middleware.ts` forwards those calls to the backend, so
   there are no CORS problems and one build works locally, in Docker and on Cloudflare.
 - **Backend** -- FastAPI (Python 3.11+). Handles parsing, NLP, scoring, the AI coach and
-  background processing. `serve.py` creates tables, seeds the starter jobs once and starts the
-  worker processes.
+  background processing. `serve.py` creates tables (and adds new columns to existing ones),
+  seeds the starter jobs once, starts the live job scheduler and starts the worker processes.
 - **Database** -- PostgreSQL on [Supabase](https://supabase.com) in production (set via
   `DATABASE_URL`), or SQLite in WAL mode locally (zero setup). Tables are created
   automatically on startup. Embeddings are computed once and stored, so matching later is fast.
@@ -199,43 +230,55 @@ CVerity/
 │   │   ├── core/
 │   │   │   ├── settings.py      # Typed configuration from .env
 │   │   │   ├── db.py            # Engine, sessions, SQLite WAL settings
-│   │   │   ├── security.py      # bcrypt hashing, JWT create and verify
+│   │   │   ├── migrate.py       # Startup: create tables, add new columns, fail stale uploads
+│   │   │   ├── security.py      # Password hashing, JWT create and verify
+│   │   │   ├── validation.py    # Name, email and password rules
 │   │   │   └── middleware.py    # Per-IP rate limiting, security headers
-│   │   ├── models/              # User, Job, Resume, MatchResult tables
-│   │   ├── api/                 # auth, resumes, jobs, match, recruiter routes
+│   │   ├── models/              # User, Job, Resume, MatchResult, Application, AuthToken tables
+│   │   ├── api/                 # auth, resumes, jobs, match, recruiter, applications routes
 │   │   └── services/
 │   │       ├── parser.py        # File to text, sections, contact details
 │   │       ├── extractor.py     # Skills, experience, education, JD parsing
 │   │       ├── nlp.py           # spaCy loader with graceful fallback
 │   │       ├── embeddings.py    # sentence-transformers or hashing fallback
-│   │       ├── matcher.py       # Scoring engine + vector index
+│   │       ├── matcher.py       # Scoring engine + vector index (open jobs only)
 │   │       ├── ats.py           # 8 ATS checks
 │   │       ├── llm.py           # Groq / OpenAI / Ollama (with backup) + rule-based coach, PII redaction
+│   │       ├── job_feeds.py     # Live jobs from public job boards, 24/7 refresh and expiry
+│   │       ├── mailer.py        # Brevo emails: verify address, reset password
+│   │       ├── export.py        # "Export my data" Excel workbook
 │   │       └── pipeline.py      # Ties everything together
 │   ├── data/
 │   │   ├── skills_taxonomy.json # ~1,500 skills with aliases and related clusters
-│   │   └── sample_jobs.json     # Starter jobs (e.g. Google, Bengaluru)
+│   │   └── sample_jobs.json     # Starter jobs, used only until live jobs arrive
 │   ├── tests/                   # pytest suites + fixture resumes
-│   ├── serve.py                 # Production launcher (seed once, N workers)
+│   ├── serve.py                 # Production launcher (seed once, job scheduler, N workers)
 │   ├── requirements.txt         # Core dependencies
 │   ├── requirements-ml.txt      # Optional: sentence-transformers, spaCy
-│   ├── Dockerfile               # Full ML image (docker compose, paid HF Spaces)
-│   └── README.md                # Hugging Face Space settings (only used on a Space)
+│   └── Dockerfile               # Full ML image (used by docker compose)
 ├── frontend/
 │   ├── app/
-│   │   ├── layout.tsx           # Fonts, metadata, tab title
+│   │   ├── layout.tsx           # Fonts, metadata, homepage reload-to-top script
 │   │   ├── page.tsx             # Landing page
-│   │   ├── globals.css          # Theme colours, illustration animations
-│   │   ├── login/, register/    # Auth screens
+│   │   ├── globals.css          # Theme colours, animations
+│   │   ├── login/, register/    # Auth screens (3D folder and ID card art)
+│   │   ├── verify-email/, forgot-password/, reset-password/
+│   │   ├── account/             # Change password, export data, delete account
 │   │   ├── analyze/             # Quick Match
-│   │   ├── seeker/              # Dashboard + resume report (ATS, matches, AI coach)
-│   │   └── recruiter/           # Dashboard + job page (ranking, bulk upload, CSV)
-│   ├── components/              # Navbar, UI kit, match breakdown, hero-art, shortlist-art
-│   ├── lib/                     # API client, helpers, tests
+│   │   ├── seeker/              # Dashboard, resume report (ATS, live matches, AI coach), applications board
+│   │   └── recruiter/           # Dashboard + job page (ranking, bulk upload, bulk stage/delete, CSV)
+│   ├── components/              # Navbar, UI kit, match breakdown, landing sections, 3D art (rb/)
+│   ├── lib/                     # API client, validation, helpers, tests
+│   ├── public/badge/            # ID card back image
 │   ├── middleware.ts            # /api proxy to the backend (reads BACKEND_URL)
 │   ├── wrangler.jsonc           # Cloudflare Worker settings (name, BACKEND_URL)
 │   ├── open-next.config.ts      # OpenNext adapter for Cloudflare
 │   └── package.json
+├── .github/workflows/
+│   ├── frontend-checks.yml      # Type check and tests on every push
+│   ├── keep-alive.yml           # Pings /api/health every 10 minutes
+│   └── stay-active.yml          # Twice a month: status email (keeps Brevo key alive), re-enables schedules
+├── scripts/live_check.py        # End-to-end check of every feature against the live site
 ├── render.yaml                  # Render Blueprint (backend)
 ├── docker-compose.yml           # PostgreSQL + API + web (+ optional Ollama)
 ├── .env.example                 # All settings documented
@@ -283,8 +326,9 @@ Open:
 - Backend health check: `http://localhost:8000/health`
 - Interactive API docs: `http://localhost:8000/docs`
 
-On first start the backend creates its tables and loads 16 starter jobs automatically.
-Register an account at `http://localhost:3000/register` to begin. On macOS or Linux, use `cp` instead of `copy` and
+On first start the backend creates its tables, loads 16 starter jobs, and begins pulling live
+jobs from the public job boards in the background (about 2 minutes; the starter jobs retire once
+real jobs arrive). Register an account at `http://localhost:3000/register` to begin. On macOS or Linux, use `cp` instead of `copy` and
 `source .venv/bin/activate`.
 
 ---
@@ -367,9 +411,15 @@ Plain liveness check, also used by Render.
 
 | Method | Path | Who | Description |
 |---|---|---|---|
-| POST | `/auth/register` | public | JSON `{email, password, full_name, role}`; role is `seeker` or `recruiter` |
-| POST | `/auth/login` | public | Form fields `username` (email) and `password`; returns `access_token` |
+| POST | `/auth/register` | public | JSON `{email, password, confirm_password, full_name, role}`; role is `seeker` or `recruiter` (name and email up to 30 characters) |
+| POST | `/auth/login` | public | Form fields `username` (email) and `password`; sets an HttpOnly session cookie and returns `access_token` |
+| POST | `/auth/logout` | user | End the session |
 | GET | `/auth/me` | user | Current user |
+| POST | `/auth/verify-email` / `/auth/resend-verification` | public / user | Confirm an email address, or send the link again |
+| POST | `/auth/forgot-password` / `/auth/reset-password` | public | Email a reset link, then set a new password |
+| POST | `/auth/change-password` | user | Change password (signs out other sessions) |
+| GET | `/auth/export` | user | Download all your data as an Excel workbook |
+| POST | `/auth/delete-account` | user | Delete the account and all its data (password required) |
 
 ### Resumes and matching
 
@@ -382,7 +432,7 @@ Plain liveness check, also used by Render.
 | GET | `/resumes/{id}/text` | user | Extracted plain text |
 | POST | `/resumes/{id}/improve?job_id=` | user | AI coach: rewrites, tailored summary, keywords |
 | DELETE | `/resumes/{id}` | user | Delete a resume |
-| GET | `/match/resume/{id}/jobs?top_k=20` | user | Ranked jobs for a resume |
+| GET | `/match/resume/{id}/jobs?top_k=20` | user | Ranked open jobs for a resume (live board jobs + CVerity jobs), plus a `live` block: open job count, last refresh, sources, whether a search is running |
 | POST | `/match/score` | user | Quick Match: resume file (or `resume_id`) + job text (or `job_id`) |
 
 ### Jobs and recruiters
@@ -397,15 +447,24 @@ Plain liveness check, also used by Render.
 | POST | `/recruiter/jobs/{id}/resumes` | recruiter | Bulk upload (multipart `files`); returns `202` and processes in the background |
 | GET | `/recruiter/jobs/{id}/events?token=` | recruiter | Server-Sent Events with live processing progress |
 | GET | `/recruiter/jobs/{id}/candidates/{resume_id}` | recruiter | Candidate detail with match breakdown |
-| DELETE | `/recruiter/jobs/{id}/candidates/{resume_id}` | recruiter | Remove a candidate |
+| DELETE | `/recruiter/jobs/{id}/candidates/{resume_id}` | recruiter | Remove one candidate (uploaded or applied) |
+| PATCH | `/recruiter/jobs/{id}/candidates/{resume_id}` | recruiter | Set a candidate's stage or notes |
+| POST | `/recruiter/jobs/{id}/candidates/bulk-stage` | recruiter | `{resume_ids, stage}`: move every selected candidate to one stage |
+| POST | `/recruiter/jobs/{id}/candidates/bulk-delete` | recruiter | `{resume_ids}`: remove every selected candidate |
+| GET | `/recruiter/jobs/{id}/pipeline` | recruiter | Candidate count per stage |
 | GET | `/recruiter/jobs/{id}/compare?ids=1,2,3` | recruiter | Compare up to 5 candidates |
 | GET | `/recruiter/jobs/{id}/export` | recruiter | Download the ranking as CSV |
 | GET | `/recruiter/stats` | recruiter | Dashboard numbers |
+| GET | `/applications` | seeker | Your applications and saved jobs |
+| POST | `/applications` | seeker | Save a job to track (`{job_id, resume_id}`) |
+| POST | `/applications/apply` | seeker | Apply to a job with a resume (`{job_id, resume_id}`) |
+| PATCH | `/applications/{id}` | seeker | Status (only when no hiring team manages it) or notes |
+| DELETE | `/applications/{id}` | seeker | Stop tracking, or withdraw a sent application |
 
 **Example:**
 
 ```bash
-curl -X POST http://localhost:8000/auth/login -d "username=you@example.com&password=<your-password>"
+curl -X POST http://localhost:8000/auth/login -H "X-CVerity-CSRF: 1" -d "username=you@example.com&password=<your-password>"
 curl -H "Authorization: Bearer <token>" -F "file=@my_resume.pdf" http://localhost:8000/resumes
 ```
 
@@ -419,24 +478,29 @@ their own jobs and candidates.
 
 | Table | Purpose and key columns |
 |---|---|
-| `users` | Accounts: `email` (unique), `full_name`, `hashed_password`, `role` (`seeker` or `recruiter`) |
-| `jobs` | Roles: `owner_id`, `title`, `company`, `location`, `description`, `required_skills`, `preferred_skills`, `min_years_experience`, `education_level`, `certifications`, `embeddings` |
-| `resumes` | Uploads: `owner_id`, `job_id` (set for recruiter uploads), `filename`, `status` (`pending`, `processing`, `ready`, `failed`), `candidate_name`, `raw_text`, `sections`, `profile`, `ats`, `embeddings` |
+| `users` | Accounts: `email` (unique), `full_name`, `hashed_password`, `role` (`seeker` or `recruiter`), `email_verified`, lockout counters |
+| `auth_tokens` | One-time email links (verify email, reset password); only a SHA-256 hash is stored |
+| `jobs` | Roles: `owner_id`, `title`, `company`, `location`, `description`, `required_skills`, `preferred_skills`, `min_years_experience`, `education_level`, `certifications`, `embeddings`; live board jobs also have `source`, `external_id`, `apply_url`, `posted_at`, `expires_at`, `last_seen_at` and `active` (closed jobs leave matches) |
+| `resumes` | Uploads: `owner_id`, `job_id` (set for recruiter candidates), `filename`, `status` (`pending`, `processing`, `ready`, `failed`), `candidate_name`, `raw_text`, `sections`, `profile`, `ats`, `embeddings`, `stage`, `notes` |
 | `match_results` | Cached scores: `resume_id` + `job_id` (unique pair), `score`, `breakdown` (full explanation) |
+| `applications` | A seeker's saved or applied jobs: `user_id`, `job_id`, `resume_id`, `status`, `candidate_id` (the copy in the hiring team's pipeline, whose stage sets `status`) |
 
 Deleting a user deletes their resumes and jobs; deleting a job or resume deletes its match
-results.
+results. New columns are added to existing tables automatically on startup (`core/migrate.py`),
+so upgrading never needs a manual migration.
 
 ---
 
 ## Security and Privacy Model
 
-- **Passwords** are hashed with bcrypt and never stored or logged in plain text.
-- **Stateless JWT sessions** are signed with `SECRET_KEY` and carry the user's role. Every
-  route checks role and ownership.
+- **Passwords** are hashed with Argon2 (older bcrypt hashes are upgraded on login) and never
+  stored or logged in plain text. New passwords found in known data breaches are rejected.
+- **Sessions** are signed JWTs in an HttpOnly cookie with CSRF protection, and carry the user's
+  role. Every route checks role and ownership. Changing or resetting a password signs out
+  every other session.
 - **Uploaded files are never written to disk.** They are read in memory; only the
   extracted text is stored.
-- **PLI redaction** -- emails, phone numbers and LinkedIn/GitHub URLs are removed before
+- **PII redaction** -- emails, phone numbers and LinkedIn/GitHub URLs are removed before
   any text is sent to an LLM.
 - **Validation** -- file type (PDF, DOCX, TXT, MD) and size (`MAX_UPLOAD_MB`) are checked.
 - **Rate limiting per visitor** -- the `/api` proxy forwards the real client IP, so one
@@ -456,6 +520,10 @@ results.
 | Resume file size | 10 MB (configurable) | `MAX_UPLOAD_MB` |
 | Resumes per bulk upload | 100 | `backend/app/api/recruiter.py` |
 | Candidates per comparison | 5 | `backend/app/api/recruiter.py` |
+| Candidates per bulk stage / delete | 1,000 | `backend/app/api/recruiter.py` |
+| Live job refresh | Every 3 hours (+ on demand per resume, at most every 6 h) | `JOB_FEEDS_REFRESH_MINUTES`, `JOB_FEEDS_ENABLED` |
+| Open live jobs kept | 1,000 newest; postings older than 45 days close | `backend/app/services/job_feeds.py` |
+| Name and email length | 30 characters | `backend/app/core/validation.py` |
 | Login attempts | 10 per minute per IP | `backend/app/core/middleware.py` |
 | Registrations | 5 per 5 minutes per IP | `backend/app/core/middleware.py` |
 | Resume uploads | 20 per 5 minutes per IP | `backend/app/core/middleware.py` |
@@ -511,14 +579,23 @@ the same `"status":"ok"` as Render.
 
 To deploy from your own computer: `cd frontend`, `npx wrangler login`, `npm run deploy`.
 
+### Email (Brevo) and hands-off upkeep
+
+1. In Render, set `BREVO_API_KEY` and `EMAIL_FROM` (for example `CVerity <you@gmail.com>`, a
+   sender verified in Brevo) and `FRONTEND_URL`. Email verification turns on automatically.
+2. In GitHub **Settings > Secrets and variables > Actions**, add `BREVO_API_KEY` and
+   `STATUS_EMAIL` (the same verified address). The **Stay active** workflow then runs on the
+   1st and 15th of every month: it emails you the site status (which keeps the Brevo key from
+   expiring after 90 idle days) and re-enables the scheduled workflows (which GitHub pauses
+   after 60 days without commits). **Keep alive** pings `/api/health` every 10 minutes.
+3. Live jobs need nothing: the backend fetches them on its own after every deploy.
+
 ### Other options
 
 - **Docker Compose** -- `docker compose up --build` runs PostgreSQL + API (full ML) + web
   on `http://localhost:3000`; add `--profile ollama` for a local Ollama server.
 - **Instant public link** -- `cloudflared tunnel --url http://localhost:3000` shares your
   local copy (works only while your computer is running).
-- **Hugging Face Docker Space** (paid PRO plan) -- `backend/Dockerfile` and
-  `backend/README.md` deploy unchanged in full ML mode on port 7860.
 
 ---
 
@@ -539,9 +616,14 @@ npm test
 | `test_extractor.py` | Skills and aliases, experience date merging, education, required vs preferred |
 | `test_matcher.py` | Relevant candidates rank higher, smooth experience curve, ATS scoring |
 | `test_api.py` | Full flow: register, upload, ATS, matching, recruiter bulk upload, CSV |
-| `lib/utils.test.ts` | Frontend helpers |
+| `test_features.py` | Applications, cover letter, interview prep, Apply and stage sync, Excel export, account deletion |
+| `test_bulk_and_live_jobs.py` | Bulk stage and bulk delete, live job parsing, storage, matching and expiry (no network) |
+| `test_auth_checklist.py`, `test_hardening.py` | Sign-up rules, lockouts, email links, CSRF, rate limits |
+| `test_llm_chain.py` | AI coach provider order, backups and error messages |
+| `lib/*.test.ts` | Frontend helpers, validation, 3D card text fitting |
 
-Tests use a separate database (`backend/data/test.db`) and never touch your real data.
+Tests use a separate database (`backend/data/test.db`), never call the real job boards or AI
+providers, and never touch your real data.
 
 ---
 
@@ -575,6 +657,13 @@ command** to `npm run deploy`.
 The build installed the ML packages. Keep the build command as
 `pip install -r requirements.txt` only (as in `render.yaml`).
 
+### Job matches show only the sample starter jobs
+
+The live job boards have not been reached yet. On a fresh deploy the first refresh runs in the
+background and takes about 2 minutes; the matches page then shows "Live jobs, N open now".
+If it never does, check the backend logs for `Job feed ... failed` (the server needs outbound
+internet access) and that `JOB_FEEDS_ENABLED` is not `false`.
+
 ### AI suggestions say "rule-based"
 
 The main AI and the backup are both off, out of quota (HTTP 429) or timed out. The message
@@ -601,7 +690,7 @@ for /f "tokens=5" %a in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') d
 | `/health` shows a hashing embedding model locally | ML packages are not installed; see [Backend Setup](#backend-setup) |
 | Frontend changes do not appear | `npm start` serves the last build; run `npm run build` first |
 | Tab still shows an old icon or title | Rebuild, then press `Ctrl + Shift + R` (browsers cache tab icons) |
-| Sample job edits do not appear | Seeding is skipped once jobs exist; delete `backend/data/app.db` to reseed (this removes local accounts too) |
+| Sample job edits do not appear | Seeding is skipped once jobs exist, and starter jobs are hidden once live jobs arrive; delete `backend/data/app.db` to reseed (this removes local accounts too) |
 | Scanned (image-only) PDF gives an empty result | No text to extract; export a text-based PDF or DOCX |
 | Logged out unexpectedly | `SECRET_KEY` changed or the token expired; log in again |
 | Backend ignores a code change (Windows) | Old `serve.py` workers can keep port 8000; stop all backend `python.exe` processes and restart |
@@ -635,11 +724,14 @@ token that proves who you are. **PII** -- personal information such as email or 
 
 ## Tech Stack
 
-Next.js 15 · React 19 · TypeScript · Tailwind CSS · TanStack React Query · Phosphor Icons ·
-Python 3.11+ · FastAPI · Uvicorn · SQLAlchemy 2.0 · Supabase (PostgreSQL) / SQLite · PyJWT · bcrypt ·
-pdfplumber · python-docx · spaCy · sentence-transformers · rapidfuzz · NumPy ·
-Groq / OpenAI / Ollama Cloud · Server-Sent Events · pytest · vitest · Docker ·
-Cloudflare Workers (OpenNext) · Render
+Next.js 15 · React 19 · TypeScript · Tailwind CSS · TanStack React Query · Three.js · GSAP · Motion · Phosphor Icons ·
+Python 3.11+ · FastAPI · Uvicorn · SQLAlchemy 2.0 · Supabase (PostgreSQL) / SQLite · PyJWT · Argon2 ·
+pdfplumber · python-docx · openpyxl · spaCy · sentence-transformers · rapidfuzz · NumPy · httpx ·
+Groq / OpenAI / Ollama Cloud · Brevo · Himalayas / Jobicy / Remote OK / Arbeitnow job APIs ·
+Server-Sent Events · pytest · vitest · Docker · GitHub Actions · Cloudflare Workers (OpenNext) · Render
+
+Live jobs are provided by [Himalayas](https://himalayas.app), [Jobicy](https://jobicy.com),
+[Remote OK](https://remoteok.com) and [Arbeitnow](https://www.arbeitnow.com), credited on every job card.
 
 ---
 

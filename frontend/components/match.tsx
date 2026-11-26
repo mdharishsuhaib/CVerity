@@ -45,21 +45,30 @@ export function MatchBreakdown({ m }: { m: Match }) {
   );
 }
 
-export function MatchRow({ title, subtitle, m, actions }: { title: string; subtitle?: string; m: Match; actions?: React.ReactNode }) {
+export function MatchRow({ title, subtitle, m, actions, source }: {
+  title: string; subtitle?: string; m: Match; actions?: React.ReactNode;
+  /** Live job from a public job board: credited with a link to the original listing. */
+  source?: { label: string; href: string };
+}) {
   const [open, setOpen] = useState(false);
   return (
-    <Panel as="article" className="lift p-0">
+    <Panel as="article" className="lift min-w-0 p-0">
       <div className="flex flex-wrap items-center gap-4 p-4 md:flex-nowrap md:p-5">
         <Score score={m.score} size="sm" label="match" />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-64">
           <h3 className="truncate font-medium">{title}</h3>
           {subtitle && <p className="truncate text-sm text-subtle">{subtitle}</p>}
           <p className="mt-1 text-sm">
             <span className={cn("font-medium", scoreColor(m.score))}>{m.verdict}</span>
             <span className="ml-2 text-subtle">{m.matched.length} skills matched{m.missing_required.length ? `, ${m.missing_required.length} required missing` : ""}</span>
+            {source && (
+              <a href={source.href} target="_blank" rel="noopener" className="ml-2 text-xs text-subtle underline decoration-line underline-offset-2 hover:text-ink">
+                via {source.label}
+              </a>
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {actions}
           <button onClick={() => setOpen(!open)} aria-expanded={open}
             className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-[13px] text-muted transition hover:bg-sunken hover:text-ink">

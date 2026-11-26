@@ -37,6 +37,15 @@ def add_missing_columns(engine: Engine, metadata) -> list[str]:
             added.append(f"{table.name}.{col.name}")
     if added:
         log.info("Added database columns: %s", ", ".join(added))
+        # Indexes on the new columns (create_all only indexes brand-new tables).
+        new = set(added)
+        for table in metadata.sorted_tables:
+            for idx in table.indexes:
+                if any(f"{table.name}.{c.name}" in new for c in idx.columns):
+                    try:
+                        idx.create(bind=engine, checkfirst=True)
+                    except Exception as exc:  # noqa: BLE001  another server created it first
+                        log.info("Index %s not created: %s", idx.name, exc)
     return added
 
 

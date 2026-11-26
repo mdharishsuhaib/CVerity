@@ -17,6 +17,15 @@ if __name__ == "__main__":
     prepare_database()  # tables, new columns, interrupted uploads
     with SessionLocal() as db:
         seed(db)  # single process, so workers never race on seeding
+    from app.core.settings import get_settings
+
+    s = get_settings()
+    if s.job_feeds_enabled:
+        # Live jobs: one scheduler in this main process (it outlives worker restarts), none in the workers.
+        from app.services.job_feeds import start_scheduler
+
+        start_scheduler(s.job_feeds_refresh_minutes)
+        os.environ["CVERITY_JOB_FEEDS"] = "external"
     os.environ["AUTO_SEED"] = "false"
     os.environ["AUTO_CREATE_TABLES"] = "false"
     uvicorn.run(

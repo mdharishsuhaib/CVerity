@@ -173,20 +173,21 @@ class VectorIndex:
 
         from app.models import Job
 
-        return tuple(db.query(func.count(Job.id), func.max(Job.id)).one())
+        return tuple(db.query(func.count(Job.id), func.max(Job.id)).filter(Job.active.is_(True)).one())
 
     def _rebuild(self, db):
         from app.models import Job
 
         model = get_embedder().name
-        rows = db.query(Job.id, Job.embeddings).all()
+        rows = db.query(Job.id, Job.embeddings).filter(Job.active.is_(True)).yield_per(100)
         ids, vecs = [], []
         for jid, emb in rows:
+            # Converted one row at a time: hundreds of live jobs as Python float lists would use a lot of memory.
             if emb and emb.get("model") == model and emb.get("full"):
                 ids.append(jid)
-                vecs.append(emb["full"])
+                vecs.append(np.asarray(emb["full"], dtype=np.float32))
         self._ids = ids
-        self._matrix = np.asarray(vecs, dtype=np.float32) if vecs else None
+        self._matrix = np.vstack(vecs) if vecs else None
         self._model = model
         self._sig = self._signature(db)
         self.dirty = False

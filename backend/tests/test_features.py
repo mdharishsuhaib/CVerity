@@ -1,8 +1,9 @@
 """Application tracker, cover letter, interview prep, hiring pipeline, data export and account deletion."""
+import io
 import itertools
-import json
 import time
 
+import openpyxl
 from conftest import FIXTURES
 from fastapi.testclient import TestClient
 
@@ -119,10 +120,14 @@ def test_export_and_delete_account():
 
         exp = c.get("/auth/export", headers=h)
         assert exp.status_code == 200 and "attachment" in exp.headers["content-disposition"]
-        data = json.loads(exp.text)
-        assert data["account"]["email"] == "feat-delete@test.com"
-        assert len(data["resumes"]) == 1 and data["resumes"][0]["raw_text"] and len(data["applications"]) == 1
-        assert "hashed_password" not in exp.text
+        assert exp.headers["content-type"].startswith("application/vnd.openxmlformats")
+        wb = openpyxl.load_workbook(io.BytesIO(exp.content))
+        assert wb.sheetnames == ["Account", "Resumes", "Resume reports", "Jobs", "Candidates", "Applications"]
+        rows = lambda name: list(wb[name].iter_rows(values_only=True))  # noqa: E731
+        assert rows("Account")[0][:2] == ("Full name", "Email") and rows("Account")[1][1] == "feat-delete@test.com"
+        assert len(rows("Resumes")) == 2 and rows("Resumes")[1][-1]  # heading row + one resume, with its text
+        assert len(rows("Resume reports")) > 2 and len(rows("Applications")) == 2
+        assert b"hashed_password" not in exp.content
 
         assert c.post("/auth/delete-account", json={"password": "wrong"}, headers=h).status_code == 400
         assert c.post("/auth/delete-account", json={"password": PW}, headers=h).status_code == 204
@@ -146,6 +151,89 @@ def test_recruiter_delete_removes_jobs_and_candidates():
         with SessionLocal() as db:
             assert db.get(Job, job["id"]) is None
             assert db.query(Resume).filter_by(job_id=job["id"]).count() == 0
+
+
+def test_apply_reaches_recruiter_and_status_follows_their_stage():
+    with TestClient(app) as c:
+        rec = _auth(c, "apply-rec@test.com", "recruiter")
+        c.cookies.clear()
+        jd = "Backend Engineer\nRequirements\n- 3+ years Python, FastAPI, PostgreSQL\nNice to have\n- Docker, AWS"
+        job = c.post("/jobs", json={"title": "Backend Engineer", "description": jd}, headers=rec).json()
+        before = c.get("/recruiter/stats", headers=rec).json()
+        assert before["candidates"] == 0 and before["avg_score"] is None and before["strong_matches"] == 0
+
+        seeker = _auth(c, "apply-seeker@test.com", "seeker")
+        c.cookies.clear()
+        rid = _upload(c, seeker)
+        # A seeker merely browsing matches scores this job too; that must not count in the team's stats.
+        c.get(f"/match/resume/{rid}/jobs?top_k=50", headers=seeker)
+        assert c.get("/recruiter/stats", headers=rec).json()["avg_score"] is None
+
+        a = c.post("/applications/apply", json={"job_id": job["id"], "resume_id": rid}, headers=seeker)
+        assert a.status_code == 201, a.text
+        app_ = a.json()
+        assert app_["status"] == "applied" and app_["sent_to_recruiter"] and app_["recruiter_stage"] == "new"
+        assert app_["applied_at"] and app_["match_score"] is not None
+        # applying twice never sends a second copy
+        assert c.post("/applications/apply", json={"job_id": job["id"], "resume_id": rid}, headers=seeker).json()["id"] == app_["id"]
+
+        stats = c.get("/recruiter/stats", headers=rec).json()
+        assert stats["candidates"] == 1 and stats["avg_score"] is not None
+        assert stats["candidates_per_job"][str(job["id"])] == 1
+        assert stats["strong_matches"] == (1 if stats["avg_score"] >= 65 else 0)
+        cands = c.get(f"/match/job/{job['id']}/candidates", headers=rec).json()["items"]
+        assert len(cands) == 1 and cands[0]["match"]
+        cid = cands[0]["resume"]["id"]
+
+        # the seeker can't move it; the hiring team's stage drives it
+        assert c.patch(f"/applications/{app_['id']}", json={"status": "offer"}, headers=seeker).status_code == 409
+        assert c.patch(f"/applications/{app_['id']}", json={"notes": "Spoke to Priya"}, headers=seeker).status_code == 200
+        for stage, shown in [("shortlisted", "applied"), ("interview", "interviewing"), ("offer", "offer"),
+                             ("hired", "offer"), ("rejected", "rejected")]:
+            c.patch(f"/recruiter/jobs/{job['id']}/candidates/{cid}", json={"stage": stage}, headers=rec)
+            got = c.get("/applications", headers=seeker).json()["items"][0]
+            assert got["status"] == shown and got["recruiter_stage"] == stage, (stage, got)
+
+        # the team removing the candidate closes the application instead of deleting it
+        assert c.delete(f"/recruiter/jobs/{job['id']}/candidates/{cid}", headers=rec).status_code == 204
+        got = c.get("/applications", headers=seeker).json()["items"][0]
+        assert got["status"] == "rejected" and not got["sent_to_recruiter"]
+        assert c.get("/recruiter/stats", headers=rec).json()["candidates"] == 0
+
+        # withdrawing removes the candidate from the team's pipeline
+        c.delete(f"/applications/{got['id']}", headers=seeker)
+        c.post("/applications/apply", json={"job_id": job["id"], "resume_id": rid}, headers=seeker)
+        assert c.get("/recruiter/stats", headers=rec).json()["candidates"] == 1
+        aid = c.get("/applications", headers=seeker).json()["items"][0]["id"]
+        assert c.delete(f"/applications/{aid}", headers=seeker).status_code == 204
+        assert c.get("/recruiter/stats", headers=rec).json()["candidates"] == 0
+
+
+def test_apply_to_starter_job_stays_in_seekers_hands():
+    with TestClient(app) as c:
+        seeker = _auth(c, "apply-starter@test.com", "seeker")
+        c.cookies.clear()
+        rid = _upload(c, seeker)
+        with SessionLocal() as db:
+            starter = db.query(Job).filter(Job.owner_id.is_(None)).first().id
+        a = c.post("/applications/apply", json={"job_id": starter, "resume_id": rid}, headers=seeker).json()
+        assert a["status"] == "applied" and not a["sent_to_recruiter"]
+        assert c.patch(f"/applications/{a['id']}", json={"status": "interviewing"}, headers=seeker).json()["status"] == "interviewing"
+
+
+def test_seeker_deleting_account_withdraws_applications():
+    with TestClient(app) as c:
+        rec = _auth(c, "wd-rec@test.com", "recruiter")
+        c.cookies.clear()
+        job = c.post("/jobs", json={"title": "Data Analyst", "description": "Data Analyst with SQL, Python and Tableau, 2+ years"},
+                     headers=rec).json()
+        seeker = _auth(c, "wd-seeker@test.com", "seeker")
+        c.cookies.clear()
+        rid = _upload(c, seeker)
+        c.post("/applications/apply", json={"job_id": job["id"], "resume_id": rid}, headers=seeker)
+        assert c.get("/recruiter/stats", headers=rec).json()["candidates"] == 1
+        assert c.post("/auth/delete-account", json={"password": PW}, headers=seeker).status_code == 204
+        assert c.get("/recruiter/stats", headers=rec).json()["candidates"] == 0
 
 
 def test_progress_stream_is_never_compressed_by_proxies():

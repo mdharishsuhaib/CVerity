@@ -15,8 +15,10 @@ export default function Page() {
 
 function Dashboard() {
   const [showNew, setShowNew] = useState(false);
-  const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: () => api("/recruiter/stats") });
-  const { data: jobs, isLoading, error } = useQuery({ queryKey: ["myjobs"], queryFn: () => api("/jobs?mine=true&limit=200") });
+  // Job seekers can apply at any moment, so the numbers refresh every 15 seconds and on returning to the tab.
+  const live = { refetchInterval: 15_000, refetchOnWindowFocus: true } as const;
+  const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: () => api("/recruiter/stats"), ...live });
+  const { data: jobs, isLoading, error } = useQuery({ queryKey: ["myjobs"], queryFn: () => api("/jobs?mine=true&limit=200"), ...live });
   return (
     <>
       <PageHeader title="Jobs" sub="Open a job to upload resumes and see the ranked shortlist."

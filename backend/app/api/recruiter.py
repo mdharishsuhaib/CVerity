@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.api.applications import close_for_candidate, sync_from_candidate
 from app.api.deps import ALLOWED_EXT, owned_job, require_recruiter, user_from_token
 from app.api.match import rank_candidates
 from app.core.db import SessionLocal, get_db
@@ -84,11 +85,15 @@ async def bulk_upload(job_id: int, background: BackgroundTasks, files: list[Uplo
 def stats(db: Session = Depends(get_db), user: User = Depends(require_recruiter)):
     job_ids = [j for (j,) in db.query(Job.id).filter(Job.owner_id == user.id).all()]
     n_cand = db.query(func.count(Resume.id)).filter(Resume.job_id.in_(job_ids)).scalar() if job_ids else 0
-    avg = (db.query(func.avg(MatchResult.score)).filter(MatchResult.job_id.in_(job_ids)).scalar() if job_ids else None)
-    strong = (db.query(func.count(MatchResult.id)).filter(MatchResult.job_id.in_(job_ids), MatchResult.score >= 65).scalar()
-              if job_ids else 0)
+    # Only this team's candidates count. Job seekers browsing their own matches also store scores against these
+    # jobs, and those must not move the average.
+    cand_scores = (db.query(MatchResult.score).join(Resume, Resume.id == MatchResult.resume_id)
+                   .filter(MatchResult.job_id.in_(job_ids), Resume.job_id == MatchResult.job_id))
+    scores = [s for (s,) in cand_scores.all()] if job_ids else []
+    avg = sum(scores) / len(scores) if scores else None
+    strong = sum(1 for s in scores if s >= 65)
     per_job = dict(db.query(Resume.job_id, func.count(Resume.id)).filter(Resume.job_id.in_(job_ids)).group_by(Resume.job_id).all()) if job_ids else {}
-    return {"jobs": len(job_ids), "candidates": n_cand, "avg_score": round(avg, 1) if avg else None,
+    return {"jobs": len(job_ids), "candidates": n_cand, "avg_score": round(avg, 1) if avg is not None else None,
             "strong_matches": strong, "candidates_per_job": per_job}
 
 
@@ -197,6 +202,7 @@ def update_candidate(job_id: int, resume_id: int, body: CandidateUpdate, db: Ses
         raise HTTPException(404, "Candidate not found")
     if body.stage is not None:
         r.stage = body.stage
+        sync_from_candidate(db, r)  # the applicant's board follows the hiring team's stage
     if body.notes is not None:
         r.notes = body.notes
     db.commit()
@@ -216,6 +222,53 @@ def remove_candidate(job_id: int, resume_id: int, db: Session = Depends(get_db),
     r = db.get(Resume, resume_id)
     if not r or r.job_id != job.id:
         raise HTTPException(404, "Candidate not found")
-    db.query(MatchResult).filter(MatchResult.resume_id == r.id).delete(synchronize_session=False)
-    db.delete(r)
+    _delete_candidates(db, [r])
     db.commit()
+
+
+class BulkIds(BaseModel):
+    resume_ids: list[int] = Field(min_length=1, max_length=1000)
+
+
+class BulkStage(BulkIds):
+    stage: str = Field(pattern="^(" + "|".join(STAGES) + ")$")
+
+
+def _job_candidates(db: Session, job: Job, ids: list[int]) -> list[Resume]:
+    """Only candidates of this job are touched; ids from other jobs or other teams are ignored."""
+    return db.query(Resume).filter(Resume.job_id == job.id, Resume.id.in_(set(ids))).all()
+
+
+def _delete_candidates(db: Session, rows: list[Resume]) -> None:
+    """Works for uploaded resumes and for applicants alike: an applicant's board shows the application as closed."""
+    ids = [r.id for r in rows]
+    if not ids:
+        return
+    db.query(MatchResult).filter(MatchResult.resume_id.in_(ids)).delete(synchronize_session=False)
+    close_for_candidate(db, ids)
+    db.flush()
+    for r in rows:
+        db.delete(r)
+
+
+@router.post("/jobs/{job_id}/candidates/bulk-stage")
+def bulk_stage(job_id: int, body: BulkStage, db: Session = Depends(get_db), user: User = Depends(require_recruiter)):
+    """Moves every selected candidate to one stage (applicants' boards follow)."""
+    job = owned_job(db, job_id, user)
+    rows = [r for r in _job_candidates(db, job, body.resume_ids) if r.status != "failed"]
+    for r in rows:
+        if r.stage != body.stage:
+            r.stage = body.stage
+            sync_from_candidate(db, r)
+    db.commit()
+    return {"updated": len(rows), "stage": body.stage}
+
+
+@router.post("/jobs/{job_id}/candidates/bulk-delete")
+def bulk_delete(job_id: int, body: BulkIds, db: Session = Depends(get_db), user: User = Depends(require_recruiter)):
+    """Removes every selected candidate from this job's pipeline."""
+    job = owned_job(db, job_id, user)
+    rows = _job_candidates(db, job, body.resume_ids)
+    _delete_candidates(db, rows)
+    db.commit()
+    return {"deleted": len(rows)}

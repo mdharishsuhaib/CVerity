@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 from contextlib import asynccontextmanager
 
@@ -39,6 +40,11 @@ async def lifespan(_: FastAPI):
     if settings.auto_create_tables:
         prepare_database()
     threading.Thread(target=_warmup, daemon=True).start()
+    # serve.py runs the job feed scheduler once in its main process, so its workers do not start their own.
+    if settings.job_feeds_enabled and os.environ.get("CVERITY_JOB_FEEDS") != "external":
+        from app.services.job_feeds import start_scheduler
+
+        start_scheduler(settings.job_feeds_refresh_minutes)
     yield
 
 

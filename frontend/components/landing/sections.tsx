@@ -73,7 +73,7 @@ export function Scoring() {
 const TRUST = [
   [Fingerprint, "Contact details stay out of AI prompts", "Emails, phone numbers, LinkedIn and GitHub links are stripped before any text reaches a language model."],
   [Lock, "Private by default", "Sessions use HttpOnly cookies with CSRF protection. Your resumes are visible only to you."],
-  [Trash, "Yours to take or delete", "Download everything we store as JSON, or delete your account and all its data from Account settings."],
+  [Trash, "Yours to take or delete", "Download everything we store as an Excel file, or delete your account and all its data from Account settings."],
 ] as const;
 
 export function Trust() {

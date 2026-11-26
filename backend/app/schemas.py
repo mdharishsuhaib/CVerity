@@ -1,5 +1,6 @@
 """Serialization helpers (API never returns embeddings or password hashes)."""
 from app.models import Application, Job, Resume, User
+from app.services.job_feeds import SOURCES
 
 
 def user_out(u: User) -> dict:
@@ -16,6 +17,14 @@ def job_out(j: Job, full: bool = True) -> dict:
         "owner_id": j.owner_id, "created_at": j.created_at.isoformat() if j.created_at else None,
     }
     d["description"] = j.description if full else j.description[:280]
+    # Live jobs from public job boards: credited to the board, applied to through the board's own link.
+    src = SOURCES.get(j.source or "")
+    d["source"] = j.source or None
+    d["source_label"] = src["label"] if src else None
+    d["source_home"] = src["home"] if src else None
+    d["apply_url"] = j.apply_url or None
+    d["posted_at"] = j.posted_at.isoformat() if j.posted_at else None
+    d["active"] = j.active is not False
     return d
 
 
@@ -31,10 +40,12 @@ def resume_summary(r: Resume) -> dict:
     }
 
 
-def application_out(a: Application, match: dict | None = None) -> dict:
+def application_out(a: Application, match: dict | None = None, stage: str | None = None) -> dict:
     return {
         "id": a.id, "job": job_out(a.job, full=False) if a.job else None, "resume_id": a.resume_id,
         "status": a.status, "notes": a.notes or "",
+        # True when the application went to a hiring team on CVerity, whose updates now set the status.
+        "sent_to_recruiter": a.candidate_id is not None, "recruiter_stage": stage,
         "applied_at": a.applied_at.isoformat() if a.applied_at else None,
         "created_at": a.created_at.isoformat() if a.created_at else None,
         "updated_at": a.updated_at.isoformat() if a.updated_at else None,

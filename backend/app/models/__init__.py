@@ -63,6 +63,15 @@ class Job(Base):
     certifications: Mapped[list] = mapped_column(JSON, default=list)
     embeddings: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Live jobs pulled from public job boards (see services/job_feeds.py). "" = posted on CVerity or a starter job.
+    source: Mapped[str] = mapped_column(String(30), default="", server_default="", index=True)
+    external_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    apply_url: Mapped[str] = mapped_column(String(1000), default="", server_default="")
+    posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Closed jobs stay for the applications that point at them, but no longer show up in matches.
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1", index=True)
 
     owner: Mapped[User | None] = relationship(back_populates="jobs")
 
@@ -112,6 +121,10 @@ class Application(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"), index=True)
     resume_id: Mapped[int | None] = mapped_column(ForeignKey("resumes.id", ondelete="SET NULL"), nullable=True)
+    # Set when the seeker presses Apply on a recruiter's job: the candidate copy of their resume in that job's
+    # pipeline. The recruiter's stage for that candidate drives this application's status.
+    candidate_id: Mapped[int | None] = mapped_column(ForeignKey("resumes.id", ondelete="SET NULL"), nullable=True,
+                                                     index=True)
     status: Mapped[str] = mapped_column(String(20), default="saved")
     notes: Mapped[str] = mapped_column(Text, default="")
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -1,0 +1,69 @@
+# Keeps a hands-off deployment alive with no one touching the repo:
+#  1. Brevo API keys expire after 90 days unused. Sending one status email twice a month keeps the key in use
+#     and tells the owner whether the site is up.
+#  2. GitHub disables scheduled workflows after 60 days without repository activity. Re-enabling them here
+#     keeps "Keep alive" (and this workflow) running.
+# Needs two repository secrets: BREVO_API_KEY and STATUS_EMAIL (the sender verified in Brevo; the email goes there).
+name: Stay active
+
+on:
+  schedule:
+    - cron: "0 4 1,15 * *" # 09:30 IST on the 1st and 15th of every month
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  stay-active:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Keep scheduled workflows enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for wf in keep-alive.yml stay-active.yml; do
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/enable" && echo "Enabled $wf"
+          done
+
+      - name: Check the live site
+        id: health
+        env:
+          SITE: https://cverity.mdharishsuhaib.workers.dev
+        run: |
+          code=000
+          for i in 1 2 3 4; do
+            code=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 60 "$SITE/api/health" || echo 000)
+            [ "$code" = "200" ] && break
+            sleep 20
+          done
+          if [ "$code" = "200" ]; then
+            echo "status=UP" >> "$GITHUB_OUTPUT"
+            echo "detail=$(jq -c '{status, database, llm: .llm.provider}' /tmp/health.json)" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=DOWN" >> "$GITHUB_OUTPUT"
+            echo "detail=Health check returned HTTP $code" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send status email (keeps the Brevo key active)
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          STATUS_EMAIL: ${{ secrets.STATUS_EMAIL }}
+          STATUS: ${{ steps.health.outputs.status }}
+          DETAIL: ${{ steps.health.outputs.detail }}
+        run: |
+          if [ -z "$BREVO_API_KEY" ] || [ -z "$STATUS_EMAIL" ]; then
+            echo "::error::Add the BREVO_API_KEY and STATUS_EMAIL repository secrets."
+            exit 1
+          fi
+          body=$(jq -n --arg to "$STATUS_EMAIL" --arg s "$STATUS" --arg d "$DETAIL" '{
+            sender: {name: "CVerity", email: $to},
+            to: [{email: $to}],
+            subject: ("CVerity status: " + $s),
+            textContent: ("Twice-monthly automatic check of https://cverity.mdharishsuhaib.workers.dev\n\nStatus: " + $s + "\nDetails: " + $d + "\n\nThis email also keeps your Brevo API key active. No action is needed while the status is UP.")
+          }')
+          code=$(curl -s -o /tmp/brevo.json -w "%{http_code}" -X POST https://api.brevo.com/v3/smtp/email \
+            -H "api-key: $BREVO_API_KEY" -H "content-type: application/json" -d "$body")
+          echo "Brevo HTTP $code"; cat /tmp/brevo.json; echo
+          [ "$code" = "201" ] || { echo "::error::Brevo rejected the email. The key may have expired."; exit 1; }

@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     db_max_overflow: int = 5
     auto_create_tables: bool = True
     auto_seed: bool = True
+    # Live jobs from public job boards (services/job_feeds.py): fetched on startup, then refreshed on this interval.
+    job_feeds_enabled: bool = True
+    job_feeds_refresh_minutes: int = 180
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     max_upload_mb: int = 10

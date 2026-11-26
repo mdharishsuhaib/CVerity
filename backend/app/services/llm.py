@@ -35,19 +35,24 @@ class LLMProvider:
 
 
 class OpenAIProvider(LLMProvider):
-    """OpenAI or any OpenAI-compatible API (Groq, OpenRouter, Together...)."""
+    """OpenAI or any OpenAI-compatible API (Groq, Together...)."""
     name = "openai"
+    json_mode = True  # ask the API for strict JSON output
 
     def __init__(self, s):
         if not s.openai_api_key:
             raise LLMError("OPENAI_API_KEY is not set")
         self.s = s
+        self.base_url, self.api_key, self.model = s.openai_base_url, s.openai_api_key, s.openai_model
         self.label = "groq" if "groq.com" in s.openai_base_url else "openai"
+        self.headers: dict[str, str] = {}
 
     def complete_json(self, system: str, prompt: str) -> dict:
-        payload = {"model": self.s.openai_model, "temperature": 0.3, "response_format": {"type": "json_object"},
+        payload = {"model": self.model, "temperature": 0.3,
                    "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]}
-        if "gpt-oss" in self.s.openai_model:
+        if self.json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        if "gpt-oss" in self.model:
             # Reasoning model: keep thinking short so the answer itself is not cut off or left empty.
             payload["reasoning_effort"] = "low"
         r = self._post(payload)
@@ -63,13 +68,30 @@ class OpenAIProvider(LLMProvider):
     def _post(self, payload: dict) -> httpx.Response:
         try:
             return httpx.post(
-                f"{self.s.openai_base_url.rstrip('/')}/chat/completions",
-                headers={"Authorization": f"Bearer {self.s.openai_api_key}"},
+                f"{self.base_url.rstrip('/')}/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}", **self.headers},
                 json=payload,
                 timeout=self.s.llm_timeout_seconds,
             )
         except httpx.TimeoutException as exc:
             raise LLMError(f"{self.label} timed out", "timeout") from exc
+
+
+class OpenRouterProvider(OpenAIProvider):
+    """OpenRouter (https://openrouter.ai): one key for many models, including free ones."""
+    name = "openrouter"
+    label = "openrouter"
+    # Many free OpenRouter models reject strict JSON mode; the prompt asks for JSON and _parse_json extracts it.
+    json_mode = False
+
+    def __init__(self, s):
+        if not s.openrouter_api_key:
+            raise LLMError("OPENROUTER_API_KEY is not set")
+        self.s = s
+        self.base_url, self.api_key, self.model = s.openrouter_base_url, s.openrouter_api_key, s.openrouter_model
+        self.label = "openrouter"
+        site = s.frontend_url if s.frontend_url.startswith("https://") else "https://github.com/mdharishsuhaib/CVerity"
+        self.headers = {"HTTP-Referer": site, "X-Title": "CVerity"}
 
 
 class OllamaProvider(LLMProvider):
@@ -112,17 +134,21 @@ def _make_provider(kind: str, s) -> LLMProvider | None:
             return OpenAIProvider(s)
         if kind == "ollama":
             return OllamaProvider(s)
+        if kind == "openrouter":
+            return OpenRouterProvider(s)
     except LLMError as exc:
         log.warning("LLM %s disabled: %s", kind, exc)
     return None
 
 
 def get_providers() -> list[LLMProvider]:
-    """Main provider first, then the optional backup (skipping duplicates and unconfigured ones)."""
+    """Main provider first, then each backup in order (skipping duplicates and unconfigured ones).
+    LLM_FALLBACK_PROVIDER takes a comma-separated list, e.g. "ollama,openrouter"."""
     s = get_settings()
+    kinds = [s.llm_provider, *(k.strip().lower() for k in s.llm_fallback_provider.split(","))]
     chain: list[LLMProvider] = []
-    for kind in (s.llm_provider, s.llm_fallback_provider):
-        if kind in {p.name for p in chain}:
+    for kind in kinds:
+        if not kind or kind == "none" or kind in {p.name for p in chain}:
             continue
         p = _make_provider(kind, s)
         if p:
@@ -357,13 +383,14 @@ def llm_status() -> dict:
     chain = get_providers()
 
     def model(p):
-        return s.openai_model if p.name == "openai" else s.ollama_model
+        return getattr(p, "model", None) or s.ollama_model
 
     if not chain:
         return {"provider": "none", "model": None}
     status = {"provider": chain[0].label, "model": model(chain[0])}
     if len(chain) > 1:
         status["fallback"] = {"provider": chain[1].label, "model": model(chain[1])}
+        status["fallbacks"] = [{"provider": p.label, "model": model(p)} for p in chain[1:]]
     return status
 
 

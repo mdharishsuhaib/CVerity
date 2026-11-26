@@ -30,7 +30,7 @@ function Inner() {
 
   return (
     <>
-      <PageHeader title="Resumes" sub="Each upload gets an ATS report and a ranked list of matching jobs." />
+      <PageHeader title="Resumes" shine sub="Each upload gets an ATS report and a ranked list of matching jobs." />
       <div className="grid gap-8 lg:grid-cols-[20rem_1fr]">
         <aside>
           <button
@@ -48,7 +48,7 @@ function Inner() {
               (drag || upload.isPending) && "[transform:translateY(-4px)]", upload.isPending && "animate-pulse")}>
               <FileArrowUp size={28} weight="duotone" />
             </span>
-            <span className="relative font-medium">{upload.isPending ? "Reading your resume..." : "Drop a resume or browse"}</span>
+            <span className="relative font-medium">{upload.isPending ? "Reading your resume..." : "Drop resume or browse"}</span>
             <span className="relative text-xs text-subtle">PDF, DOCX or TXT, up to 10 MB</span>
           </button>
           <input ref={input} type="file" accept=".pdf,.docx,.txt" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
@@ -80,7 +80,7 @@ function Inner() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <Link href={`/seeker/resumes/${r.id}?tab=matches`}><Button size="sm">Job matches</Button></Link>
+                        <Link href={`/seeker/resumes/${r.id}?tab=matches`}><Button size="sm">Matches</Button></Link>
                         <Link href={`/seeker/resumes/${r.id}`}><Button size="sm" variant="secondary">Report</Button></Link>
                         <Button size="sm" variant="quiet" onClick={() => setConfirming(r.id)}>Delete</Button>
                       </div>

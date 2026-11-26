@@ -3,32 +3,21 @@ import Link from "next/link";
 import { ArrowRight, Fingerprint, Lock, Scales, Trash } from "@phosphor-icons/react";
 import { useAuth } from "@/components/providers";
 import { TiltCard } from "@/components/landing/three-d";
-
-const STEPS = [
-  ["01", "Upload", "Drop a PDF, DOCX or TXT. CVerity extracts sections, contact details, dated experience and skills."],
-  ["02", "Score", "Eight ATS checks and a match score against every open role, each with its reasons."],
-  ["03", "Improve", "Rewrite weak bullets, add missing keywords, then generate a cover letter and interview prep."],
-  ["04", "Apply and track", "Save the roles you want and move them from applied to offer on one board."],
-];
+import { Grainient, StepsStack, WeightGauges } from "@/components/fx";
+import ScrollReveal from "@/components/rb/ScrollReveal";
 
 export function HowItWorks() {
   return (
     <section id="how" className="scroll-mt-20 border-b border-line/70 bg-surface/60">
-      <div className="mx-auto max-w-6xl px-4 py-24 md:px-6 md:py-32">
+      <div className="mx-auto max-w-6xl px-4 pt-24 md:px-6 md:pt-32">
         <div className="grid gap-6 md:grid-cols-[1fr_1.2fr] md:items-end">
           <h2 className="text-3xl font-semibold tracking-[-0.025em] md:text-[2.75rem] md:leading-[1.08]">From upload to offer in four steps.</h2>
           <p className="max-w-[48ch] text-lg leading-relaxed text-muted md:justify-self-end">The first report takes a few seconds. No templates to fill in and no setup.</p>
         </div>
-        <ol className="mt-16 grid gap-10 md:grid-cols-4 md:gap-8">
-          {STEPS.map(([n, t, d]) => (
-            <li key={n} className="relative border-t border-line pt-6">
-              <span aria-hidden className="absolute -top-px left-0 h-px w-10 bg-accent" />
-              <p className="font-mono text-sm tabular text-accent">{n}</p>
-              <h3 className="mt-3 text-lg font-semibold">{t}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{d}</p>
-            </li>
-          ))}
-        </ol>
+      </div>
+      {/* React Bits ScrollStack: each step card slides up and stacks on the previous one as you scroll. */}
+      <div className="mx-auto max-w-4xl px-4 pb-16 pt-10 md:px-6">
+        <StepsStack />
       </div>
     </section>
   );
@@ -49,7 +38,11 @@ export function Scoring() {
       <div className="mx-auto grid max-w-6xl gap-16 px-4 py-24 md:px-6 md:py-32 lg:grid-cols-[1fr_1.15fr]">
         <div>
           <p className="text-sm font-medium text-accent">Explainable by design</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.025em] md:text-[2.75rem] md:leading-[1.08]">A score you can argue with.</h2>
+          {/* React Bits ScrollReveal: the headline's words rise and sharpen as it scrolls into view. */}
+          <ScrollReveal effect="rise" mode="scrub" baseOpacity={0.08} blurStrength={6} enableBlur
+            containerClassName="!mb-0 !mt-3" textClassName="!text-3xl !font-semibold !leading-[1.08] tracking-[-0.025em] md:!text-[2.75rem]">
+            A score you can argue with.
+          </ScrollReveal>
           <p className="mt-4 max-w-[46ch] text-lg leading-relaxed text-muted">
             Every match breaks down into five signals with published weights. You see which skills matched, which were close and which are missing.
           </p>
@@ -60,20 +53,18 @@ export function Scoring() {
             </p>
           </div>
         </div>
-        <ul className="grid content-center gap-7">
-          {WEIGHTS.map(([t, w, d]) => (
-            <li key={t}>
-              <div className="flex items-baseline justify-between gap-4">
-                <h3 className="font-semibold">{t}</h3>
-                <span className="font-mono text-sm tabular text-accent">{w}%</span>
-              </div>
-              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-line/70">
-                <div className="h-full rounded-full bg-accent" style={{ width: `${(w / 35) * 100}%` }} />
-              </div>
-              <p className="mt-2.5 text-sm leading-relaxed text-muted">{d}</p>
-            </li>
-          ))}
-        </ul>
+        <div className="grid content-center gap-10">
+          {/* React Bits SloshGauge: each signal's weight as a liquid gauge; move the cursor over them to make them slosh. */}
+          <WeightGauges weights={WEIGHTS} />
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {WEIGHTS.map(([t, w, d]) => (
+              <li key={t} className="text-sm leading-relaxed">
+                <span className="font-semibold text-ink">{t}</span> <span className="font-mono text-accent">{w}%</span>
+                <p className="mt-1 text-muted">{d}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );
@@ -107,7 +98,7 @@ export function Trust() {
 }
 
 const FAQ = [
-  ["Is CVerity free?", "Yes. Create an account and upload as many resumes as you like."],
+  ["Is there a limit on resumes?", "No. Create an account and upload as many resumes as you like."],
   ["Which file types work?", "PDF, DOCX and TXT, up to 10 MB each. Scanned image-only PDFs can't be read, so export a text PDF from your editor."],
   ["Will the AI invent experience for me?", "No. Rewrites and cover letters only use what is in your resume and put [placeholders] where a number is unknown, so you fill in the truth."],
   ["How is this different from a keyword checker?", "Keyword tools count words. CVerity also compares meaning, credits related tools, reads your real dates for experience and explains every point of the score."],
@@ -136,17 +127,21 @@ export function FinalCta() {
   const href = user ? (user.role === "recruiter" ? "/recruiter" : "/seeker") : "/register";
   return (
     <section className="relative overflow-hidden">
-      <div aria-hidden className="landing-glow pointer-events-none absolute -bottom-56 left-1/2 h-[30rem] w-[44rem] -translate-x-1/2 rounded-full" />
+      {/* React Bits Grainient: a slowly flowing, film-grain gradient in brand greens behind the final call to action. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-80">
+        <Grainient lightMode colors={["#e5f2ed", "#9fe3cb", "#0e7a5f", "#f7f7f8"]} speed={0.35} grainAmount={0.08} softness={0.85} dpr={1.25} />
+      </div>
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bg via-bg/30 to-bg/70" />
       <div className="relative mx-auto max-w-3xl px-4 py-24 text-center md:py-32">
         <h2 className="text-3xl font-semibold tracking-[-0.03em] md:text-5xl md:leading-[1.05]">Your next application deserves a better first read.</h2>
         <p className="mx-auto mt-5 max-w-[46ch] text-lg leading-relaxed text-muted">Upload a resume and see your ATS score and best-fit jobs in under a minute.</p>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <Link href={href} className="inline-flex h-12 items-center gap-2 rounded-md bg-gradient-to-b from-accent to-accent-hover px-6 font-medium text-accent-on shadow-button transition hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]">
-            {user ? "Open your dashboard" : "Get started free"} <ArrowRight size={16} weight="bold" />
+            {user ? "My dashboard" : "Get started"} <ArrowRight size={16} weight="bold" />
           </Link>
           {!user && (
             <Link href="/login" className="inline-flex h-12 items-center rounded-md px-5 font-medium text-muted transition hover:text-ink">
-              I already have an account
+              Log in
             </Link>
           )}
         </div>

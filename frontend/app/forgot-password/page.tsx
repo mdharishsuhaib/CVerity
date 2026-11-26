@@ -32,7 +32,7 @@ export default function Page() {
     return (
       <AuthShell title="Reset your password">
         <Notice>Password reset by email isn't available yet. Please contact the site owner for help with your account.</Notice>
-        <Link className="text-sm font-medium text-accent hover:underline" href="/login">Back to log in</Link>
+        <Link className="text-sm font-medium text-accent hover:underline" href="/login">Back to login</Link>
       </AuthShell>
     );
   }
@@ -40,7 +40,7 @@ export default function Page() {
     return (
       <AuthShell title="Check your inbox">
         <Notice tone="good">{sent} The link works once and expires in 30 minutes.</Notice>
-        <Link className="text-sm font-medium text-accent hover:underline" href="/login">Back to log in</Link>
+        <Link className="text-sm font-medium text-accent hover:underline" href="/login">Back to login</Link>
       </AuthShell>
     );
   }
@@ -53,9 +53,9 @@ export default function Page() {
             onChange={(e) => f.set("email", e.target.value)} onBlur={() => f.blur("email")} />
         </Field>
         <FormError message={f.formErr} />
-        <Button className="w-full" disabled={f.busy}>{f.busy ? "Sending..." : "Send reset link"}</Button>
+        <Button className="w-full" disabled={f.busy}>{f.busy ? "Sending..." : "Send link"}</Button>
       </form>
-      <Link className="text-sm font-medium text-accent hover:underline" href="/login">Back to log in</Link>
+      <Link className="text-sm font-medium text-accent hover:underline" href="/login">Back to login</Link>
     </AuthShell>
   );
 }

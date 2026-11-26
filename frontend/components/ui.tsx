@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { cn, scoreColor, scoreFill } from "@/lib/utils";
+import { ShinyText } from "@/components/fx";
 
 /* Radius rule: controls rounded-md (8px), containers rounded-xl (12px). One accent: --accent. */
 
@@ -165,12 +166,15 @@ export function EmptyStack() {
   );
 }
 
-export function PageHeader({ title, sub, actions, back }: { title: string; sub?: React.ReactNode; actions?: React.ReactNode; back?: React.ReactNode }) {
+export function PageHeader({ title, sub, actions, back, shine }: { title: string; sub?: React.ReactNode; actions?: React.ReactNode; back?: React.ReactNode; shine?: boolean }) {
   return (
     <header className="page-in mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
         {back && <div className="mb-3">{back}</div>}
-        <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em] md:text-[2.1rem]">{title}</h1>
+        <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em] md:text-[2.1rem]">
+          {/* React Bits ShinyText: a light sweeps across the title (used on the Resumes dashboard only). */}
+          {shine ? <ShinyText text={title} color="#18181b" shineColor="#5fd3ae" speed={3.2} /> : title}
+        </h1>
         {sub && <div className="mt-1.5 text-sm text-muted">{sub}</div>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}

@@ -40,7 +40,7 @@ export default function Page() {
     return (
       <AuthShell title="Reset link incomplete">
         <Notice>Please open the reset link from your email again, or request a new one.</Notice>
-        <Link className="text-sm font-medium text-accent hover:underline" href="/forgot-password">Request a new link</Link>
+        <Link className="text-sm font-medium text-accent hover:underline" href="/forgot-password">Get new link</Link>
       </AuthShell>
     );
   }
@@ -54,8 +54,8 @@ export default function Page() {
           onChange={(v) => f.set("confirm_password", v)} onBlur={() => f.blur("confirm_password")}
           error={f.shown("confirm_password", errors.confirm_password)} />
         <FormError message={f.formErr} />
-        {f.formErr && <Link className="text-sm font-medium text-accent hover:underline" href="/forgot-password">Request a new link</Link>}
-        <Button className="w-full" disabled={f.busy}>{f.busy ? "Saving..." : "Set new password"}</Button>
+        {f.formErr && <Link className="text-sm font-medium text-accent hover:underline" href="/forgot-password">Get new link</Link>}
+        <Button className="w-full" disabled={f.busy}>{f.busy ? "Saving..." : "Save password"}</Button>
       </form>
     </AuthShell>
   );

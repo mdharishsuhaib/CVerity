@@ -3,8 +3,9 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { RequireAuth } from "@/components/providers";
-import { Button, EmptyStack, ErrorNote, Field, Input, PageHeader, Panel, Score, Skeleton, Textarea } from "@/components/ui";
+import { Button, EmptyStack, ErrorNote, Field, Input, PageHeader, Panel, Score, Textarea } from "@/components/ui";
 import { MatchBreakdown } from "@/components/match";
+import { Scanner } from "@/components/fx";
 
 export default function Page() {
   return <RequireAuth><Analyze /></RequireAuth>;
@@ -37,11 +38,22 @@ function Analyze() {
           <Field label="Job title" hint="Optional. Improves the title score."><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
           <Field label="Job description"><Textarea rows={12} value={jd} onChange={(e) => setJd(e.target.value)} /></Field>
           <ErrorNote error={m.error} />
-          <div><Button disabled={!ready || m.isPending}>{m.isPending ? "Scoring..." : "Score match"}</Button></div>
+          <div><Button disabled={!ready || m.isPending}>{m.isPending ? "Scoring..." : "Check fit"}</Button></div>
         </form>
 
         <div>
-          {m.isPending && <div className="grid gap-3"><Skeleton className="h-28" /><Skeleton className="h-56" /></div>}
+          {m.isPending && (
+            // React Bits Scanner: a glowing sweep over the resume while it's being scored.
+            <div className="relative h-[22rem] overflow-hidden rounded-2xl bg-surface shadow-depth">
+              <div aria-hidden className="absolute inset-0">
+                <Scanner lightMode color1="#0e7a5f" color2="#5fd3ae" color3="#b9ecdb" sweepSpeed={1.4} glow={1.1} scanline={false} grain={false} />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 grid justify-items-center gap-1 bg-gradient-to-t from-surface via-surface/85 to-transparent p-6 pt-16 text-center">
+                <p className="font-semibold">Reading your resume...</p>
+                <p className="text-sm text-muted">Checking skills, experience, education and title against the job.</p>
+              </div>
+            </div>
+          )}
           {m.data && !m.isPending && (
             <Panel className="page-in overflow-hidden p-0 shadow-depth-lg">
               <div className="relative flex flex-wrap items-center gap-6 border-b border-line p-6">

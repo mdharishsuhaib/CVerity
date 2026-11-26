@@ -43,14 +43,14 @@ export default function Page() {
     return (
       <AuthShell title="Verification failed">
         <Notice>{msg}</Notice>
-        <p className="text-sm text-muted">Log in to request a new verification link. <Link className="font-medium text-accent hover:underline" href="/login">Go to log in</Link></p>
+        <p className="text-sm text-muted">Log in to request a new verification link. <Link className="font-medium text-accent hover:underline" href="/login">Log in</Link></p>
       </AuthShell>
     );
   }
   return (
     <AuthShell title="Email verified" sub="Your account is active.">
       <Notice tone="good">Thanks for confirming your email address. You're now logged in.</Notice>
-      <Button className="justify-self-start" onClick={() => router.push(user?.role === "recruiter" ? "/recruiter" : "/seeker")}>Continue</Button>
+      <Button className="justify-self-start" onClick={() => router.push(user?.role === "recruiter" ? "/recruiter" : "/seeker")}>Let's go</Button>
     </AuthShell>
   );
 }

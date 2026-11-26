@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/providers";
 import { Field, Input } from "@/components/ui";
 import { useTilt } from "@/components/landing/three-d";
+import { Antigravity, Lanyard } from "@/components/fx";
 
 /** Password input with show/hide and Caps Lock warning. Paste and password-manager autofill stay enabled. */
 export const PasswordField = React.forwardRef<HTMLInputElement, {
@@ -90,8 +91,10 @@ export function Notice({ children, tone = "neutral" }: { children: React.ReactNo
   );
 }
 
-export function AuthShell({ title, sub, children, brand }: {
+export function AuthShell({ title, sub, children, brand, scene }: {
   title: string; sub?: React.ReactNode; children?: React.ReactNode; brand?: boolean;
+  /** React Bits effect beside the form: "login" (Antigravity particles) or "signup" (3D Lanyard badge). */
+  scene?: "login" | "signup";
 }) {
   const form = (
     <div className="grid gap-8">
@@ -115,7 +118,39 @@ export function AuthShell({ title, sub, children, brand }: {
   return (
     <div className="mx-auto grid min-h-[calc(100dvh-10rem)] max-w-6xl items-center gap-12 py-4 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-20">
       <div className="w-full max-w-sm justify-self-center lg:justify-self-start">{form}</div>
-      <AuthArt />
+      {scene === "login" ? <LoginArt /> : scene === "signup" ? <SignupArt /> : <AuthArt />}
+    </div>
+  );
+}
+
+/** Log in: React Bits Antigravity, a 3D field of particles that flows toward the pointer and bursts on click. */
+function LoginArt() {
+  return (
+    <div className="relative hidden h-[34rem] overflow-hidden rounded-[28px] bg-gradient-to-br from-accent/10 via-surface to-sunken shadow-depth-lg lg:block">
+      <div aria-hidden className="absolute inset-0">
+        <Antigravity lightMode colors={["#0e7a5f", "#5fd3ae", "#2f8fb8"]} colorMode="conic" count={340} particleShape="capsule"
+          magnetRadius={14} ringRadius={9} particleSize={1.4} depthFactor={1.2} waveAmplitude={1.1} clickBurst maxDevicePixelRatio={1.5} />
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 grid justify-items-center gap-1 bg-gradient-to-t from-surface via-surface/80 to-transparent px-8 pb-8 pt-24 text-center">
+        <p className="text-lg font-semibold tracking-tight">Welcome back.</p>
+        <p className="text-sm text-muted">Your scores, matches and applications are waiting. Move the cursor to steer the field.</p>
+      </div>
+    </div>
+  );
+}
+
+/** Create account: React Bits Lanyard, a physics 3D badge on a strap you can grab, swing and flip. */
+function SignupArt() {
+  return (
+    <div className="relative hidden h-[36rem] overflow-hidden rounded-[28px] bg-gradient-to-b from-accent/10 via-sunken to-sunken shadow-depth-lg lg:block">
+      <div aria-hidden className="landing-grid absolute inset-0 opacity-60" />
+      <div className="absolute inset-0">
+        <Lanyard frontImage="/badge/front.svg" backImage="/badge/back.svg" finish="glossy" metal="silver" strapColor="#0e7a5f"
+          strapWidth={0.9} strapLength={0.36} size={0.58} breeze={0.45} cornerRadius={0.08} />
+      </div>
+      <p className="pointer-events-none absolute inset-x-0 bottom-6 text-center text-sm font-medium text-muted">
+        Your verified resume badge. Grab it, swing it, flip it.
+      </p>
     </div>
   );
 }

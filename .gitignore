@@ -24,6 +24,10 @@ id_rsa*
 id_ed25519*
 id_ecdsa*
 *.ppk
+*.p8
+*.asc
+*.gpg
+*.age
 
 # Credential / token files
 secrets/
@@ -39,6 +43,9 @@ client_secret*.json
 token.json
 *.token
 .netrc
+.git-credentials
+auth.json
+.pgpass
 .npmrc
 .pypirc
 .htpasswd
@@ -83,6 +90,15 @@ cookies.txt
 # AI tool / MCP configs (can hold API tokens)
 mcp.json
 .mcp.json
+
+# Other tool files that can hold tokens or passwords
+.yarnrc.yml
+.vault-token
+*.keytab
+*.ovpn
+.streamlit/secrets.toml
+*.local
+.env*.local
 
 # =====================================================================
 #  PERSONAL DATA  (resumes, user accounts, uploaded files)

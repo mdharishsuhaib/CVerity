@@ -1,17 +1,16 @@
 "use client";
 import {
-  ChatsCircle, EnvelopeSimple, Eye, FileMagnifyingGlass, Kanban, ListChecks, PencilLine, UsersThree,
+  ChatsCircle, EnvelopeSimple, Eye, FileMagnifyingGlass, Funnel, Kanban, ListChecks, PencilLine, UsersThree,
 } from "@phosphor-icons/react";
-import { ShortlistArt } from "@/components/shortlist-art";
-import { Frame3D, TiltCard } from "@/components/landing/three-d";
+import { Counter, ShortlistStack, SpotlightCard } from "@/components/fx";
 
 /** A short strip of the questions CVerity answers: what users get, stated plainly. */
 export function ValueStrip() {
-  const items = [
-    ["8", "ATS checks on every upload"],
-    ["5", "signals behind each match score"],
-    ["100", "resumes ranked per batch"],
-    ["0", "made-up experience in any rewrite"],
+  const items: [number, string][] = [
+    [8, "ATS checks on every upload"],
+    [5, "signals behind each match score"],
+    [100, "resumes ranked per batch"],
+    [0, "made-up experience in any rewrite"],
   ];
   return (
     <section aria-label="At a glance" className="border-b border-line/70 bg-surface/60">
@@ -19,7 +18,10 @@ export function ValueStrip() {
         {items.map(([n, l], i) => (
           <div key={l} className={i > 0 ? "md:border-l md:border-line md:pl-8" : ""}>
             <dt className="sr-only">{l}</dt>
-            <dd className="font-mono text-3xl font-semibold tabular tracking-tight md:text-4xl">{n}</dd>
+            {/* React Bits Counter: odometer digits that roll into place when the strip scrolls into view. */}
+            <dd className="h-10 font-mono text-3xl font-semibold tabular tracking-tight md:h-11 md:text-4xl" aria-label={String(n)}>
+              <Counter value={n} fontSize="1em" duration={1.4} stagger={0.08} motionBlur />
+            </dd>
             <dd className="mt-1 max-w-[20ch] text-sm text-muted">{l}</dd>
           </div>
         ))}
@@ -39,7 +41,7 @@ const SEEKER = [
 
 const RECRUITER = [
   [UsersThree, "A ranked shortlist in minutes", "Drop up to 100 resumes on a job. Each is parsed, scored and ranked while you watch."],
-  [Kanban, "A hiring pipeline per role", "Move candidates from new to hired, keep private notes and filter by stage."],
+  [Funnel, "A hiring pipeline per role", "Move candidates from new to hired, keep private notes and filter by stage."],
   [Eye, "Blind screening", "Hide names and file names with one switch, so the first pass is about skills and experience."],
 ] as const;
 
@@ -55,22 +57,25 @@ export function Features() {
         <ul className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SEEKER.map(([Icon, t, d]) => (
             <li key={t}>
-              <TiltCard className="h-full rounded-2xl bg-surface p-7 ring-1 ring-line/80 shadow-[0_1px_0_rgb(var(--line)/0.6),0_20px_40px_-30px_rgb(var(--shadow)/0.35)] hover:shadow-[0_30px_60px_-30px_rgb(var(--shadow)/0.45)]">
-                <span className="relative z-[2] grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-accent ring-1 ring-accent/15 [transform:translateZ(40px)]">
+              {/* React Bits SpotlightCard: a soft light that follows the cursor across each card. */}
+              <SpotlightCard theme="light" spotlightColor="rgba(14,122,95,0.16)" spotlightSize={360} borderGlow={0.5}
+                className="h-full rounded-2xl bg-surface p-7 ring-1 ring-line/80 shadow-[0_1px_0_rgb(var(--line)/0.6),0_20px_40px_-30px_rgb(var(--shadow)/0.35)] transition-shadow hover:shadow-[0_30px_60px_-30px_rgb(var(--shadow)/0.45)]">
+                <span className="relative z-[2] grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-accent ring-1 ring-accent/15">
                   <Icon size={22} weight="duotone" />
                 </span>
-                <h3 className="relative z-[2] mt-5 font-semibold [transform:translateZ(24px)]">{t}</h3>
-                <p className="relative z-[2] mt-2 text-sm leading-relaxed text-muted [transform:translateZ(12px)]">{d}</p>
-              </TiltCard>
+                <h3 className="relative z-[2] mt-5 font-semibold">{t}</h3>
+                <p className="relative z-[2] mt-2 text-sm leading-relaxed text-muted">{d}</p>
+              </SpotlightCard>
             </li>
           ))}
         </ul>
 
         <div className="mt-28 grid items-center gap-14 lg:grid-cols-[1fr_1.05fr]">
           <div className="order-2 lg:order-1">
-            <Frame3D base="tilt-left">
-              <ShortlistArt className="relative z-[2] w-full" />
-            </Frame3D>
+            <div className="relative grid place-items-center py-6">
+              <div aria-hidden className="landing-glow pointer-events-none absolute h-80 w-80 rounded-full" />
+              <ShortlistStack />
+            </div>
           </div>
           <div className="order-1 lg:order-2">
             <p className="text-sm font-medium text-accent">For hiring teams</p>

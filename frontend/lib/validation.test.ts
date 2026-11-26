@@ -6,7 +6,7 @@ import {
 // Same cases as backend/tests/test_auth_checklist.py, so both sides agree.
 describe("full name", () => {
   it.each(["", "   ", "\t"])("requires a name (%j)", (n) => expect(nameError(n)).toBe(MSG.nameRequired));
-  it.each(["Mohammed Haris Suhaib", "Mary-Jane O'Neil", "Renée Zoë Müller", "J. R. R. Tolkien", "D\u2019Souza", "X",
+  it.each(["Ananya Mehta", "Mary-Jane O'Neil", "Renée Zoë Müller", "J. R. R. Tolkien", "D\u2019Souza", "X",
     "सायरा बानो", "முகமது ஹாரிஸ்", "ಸುಹೈಬ್", "محمد حارث", "李小龙", "Ольга", "Γιώργος"])("accepts %s", (n) => {
     expect(nameError(`  ${n}  `)).toBeNull();
   });
@@ -14,7 +14,7 @@ describe("full name", () => {
     expect(nameError("a".repeat(100))).toBeNull();
     expect(nameError("a".repeat(101))).toBe(MSG.nameTooLong);
   });
-  it.each(["Haris\nSuhaib", "Haris\u0000", "Ha\u202eris", "Haris\u001b[31m", "12345", "...", "John3", "<script>", "a@b"])(
+  it.each(["Ananya\nMehta", "Ananya\u0000", "An\u202eanya", "Ananya\u001b[31m", "12345", "...", "John3", "<script>", "a@b"])(
     "rejects %j", (n) => expect(nameError(n)).toBe(MSG.nameInvalid));
 });
 
@@ -22,10 +22,10 @@ describe("email", () => {
   it("requires an email", () => expect(emailError("  ")).toBe(MSG.emailRequired));
   it.each(["plain", "a@@b.com", "a@b@c.com", "a b@c.com", "a@b", "@x.com", "a@-x.com", "a..b@x.com", "x".repeat(65) + "@x.com"])(
     "rejects %j", (e) => expect(emailError(e)).toBe(MSG.emailInvalid));
-  it.each(["haris@example.com", "  Haris.S+jobs@Sub.Example.co.in  "])("accepts %j", (e) => expect(emailError(e)).toBeNull());
+  it.each(["ananya@example.com", "  Ananya.S+jobs@Sub.Example.co.in  "])("accepts %j", (e) => expect(emailError(e)).toBeNull());
   it("suggests fixes for common typos", () => {
-    expect(emailSuggestion("Haris@gmial.com")).toBe("haris@gmail.com");
-    expect(emailSuggestion("haris@gmail.com")).toBeNull();
+    expect(emailSuggestion("Ananya@gmial.com")).toBe("ananya@gmail.com");
+    expect(emailSuggestion("ananya@gmail.com")).toBeNull();
   });
 });
 
@@ -47,8 +47,8 @@ describe("new password", () => {
     expect(newPasswordError(pw)).not.toBeNull();
   });
   it("rejects name, email and site name", () => {
-    for (const pw of ["my cverity password 1", "haris.suhaib@ex rocks", "suhaib forever and ever"]) {
-      expect(newPasswordError(pw, "haris.suhaib@example.com", "Mohammed Haris Suhaib")).toBe(MSG.passwordContext);
+    for (const pw of ["my cverity password 1", "ananya.mehta@ex rocks", "mehta forever and ever"]) {
+      expect(newPasswordError(pw, "ananya.mehta@example.com", "Ananya Mehta")).toBe(MSG.passwordContext);
     }
   });
   it("counts emoji as one character", () => {

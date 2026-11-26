@@ -1,7 +1,25 @@
 .venv
 __pycache__
 .pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Secrets: never copy these into a Docker image
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Local databases and personal data (user accounts, resumes)
 data/*.db
 data/*.db-*
-.env
+*.sqlite
+*.sqlite3
+uploads/
+
 *.log

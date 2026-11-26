@@ -55,7 +55,7 @@ function Account() {
           onChange={(v) => f.set("confirm_password", v)} onBlur={() => f.blur("confirm_password")}
           error={f.shown("confirm_password", errors.confirm_password)} />
         <FormError message={f.formErr} />
-        <Button className="w-full" disabled={f.busy}>{f.busy ? "Saving..." : "Update password"}</Button>
+        <Button className="w-full" disabled={f.busy}>{f.busy ? "Saving..." : "Save password"}</Button>
       </form>
       <YourData />
     </AuthShell>
@@ -100,7 +100,7 @@ function YourData() {
         <p className="text-sm text-muted">Download everything CVerity stores about you: account details, resumes and their reports, jobs, candidates and tracked applications.</p>
         <FormError message={exportErr} />
         <Button variant="secondary" className="w-full" onClick={exportData} disabled={exporting}>
-          <DownloadSimple size={16} />{exporting ? "Preparing..." : "Download my data (JSON)"}
+          <DownloadSimple size={16} />{exporting ? "Preparing..." : "Export my data"}
         </Button>
       </section>
 
@@ -109,7 +109,7 @@ function YourData() {
         <p className="text-sm text-muted">Permanently removes your account, resumes, jobs, candidates and applications. This can&apos;t be undone.</p>
         {!confirming ? (
           <Button variant="secondary" className="w-full text-bad" onClick={() => { setConfirming(true); setTimeout(() => pwRef.current?.focus(), 0); }}>
-            Delete my account
+            Delete account
           </Button>
         ) : (
           <form onSubmit={remove} className="grid gap-3 rounded-xl bg-bad-soft/50 p-4 ring-1 ring-bad/20" noValidate>
@@ -118,7 +118,7 @@ function YourData() {
               error={f.shown("password", loginPasswordError(f.values.password))} />
             <FormError message={f.formErr} />
             <div className="flex gap-2">
-              <Button variant="danger" className="flex-1" disabled={f.busy}>{f.busy ? "Deleting..." : "Delete permanently"}</Button>
+              <Button variant="danger" className="flex-1" disabled={f.busy}>{f.busy ? "Deleting..." : "Delete forever"}</Button>
               <Button type="button" variant="quiet" onClick={() => { setConfirming(false); f.set("password", ""); }}>Cancel</Button>
             </div>
           </form>

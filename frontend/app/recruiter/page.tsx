@@ -91,7 +91,7 @@ function NewJob({ onDone }: { onDone: () => void }) {
       <Field label="Job description" hint="Paste the full posting. Headings like Requirements and Nice to have help us separate required from preferred skills.">
         <Textarea rows={9} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
       </Field>
-      <div><Button variant="secondary" onClick={() => parse.mutate()} disabled={descShort || parse.isPending}><MagicWand size={16} />{parse.isPending ? "Reading..." : "Extract requirements"}</Button></div>
+      <div><Button variant="secondary" onClick={() => parse.mutate()} disabled={descShort || parse.isPending}><MagicWand size={16} />{parse.isPending ? "Reading..." : "Auto-fill"}</Button></div>
       {(parsed || f.required_skills.length > 0) && (
         <div className="grid gap-4 border-t border-line pt-5 md:grid-cols-2">
           <Field label="Required skills" hint="Comma separated. Count double in the score."><Input value={csv(f.required_skills)} onChange={(e) => setF({ ...f, required_skills: list(e.target.value) })} /></Field>
@@ -105,7 +105,7 @@ function NewJob({ onDone }: { onDone: () => void }) {
         </div>
       )}
       <ErrorNote error={parse.error || save.error} />
-      <div className="flex justify-end"><Button onClick={() => save.mutate()} disabled={!f.title || descShort || save.isPending}>{save.isPending ? "Publishing..." : "Publish job"}</Button></div>
+      <div className="flex justify-end"><Button onClick={() => save.mutate()} disabled={!f.title || descShort || save.isPending}>{save.isPending ? "Publishing..." : "Publish"}</Button></div>
     </Panel>
   );
 }

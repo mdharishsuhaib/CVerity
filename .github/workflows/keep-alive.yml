@@ -1,0 +1,29 @@
+# Backup keep-alive for the free hosting tiers: Render sleeps after 15 idle minutes and Supabase pauses
+# idle projects. Calling /api/health goes Cloudflare -> Render -> Supabase (it runs SELECT 1), so the whole
+# signup/login path stays warm. Use alongside UptimeRobot; GitHub may delay scheduled runs by a few minutes.
+name: Keep alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping health endpoint
+        env:
+          SITE: https://cverity.mdharishsuhaib.workers.dev
+        run: |
+          for i in 1 2 3 4; do
+            code=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 60 "$SITE/api/health" || echo 000)
+            echo "Attempt $i: HTTP $code"; cat /tmp/health.json 2>/dev/null; echo
+            [ "$code" = "200" ] && exit 0
+            sleep 20
+          done
+          echo "::error::Health check failed after 4 attempts"
+          exit 1

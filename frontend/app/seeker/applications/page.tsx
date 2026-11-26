@@ -42,7 +42,7 @@ function Applications() {
       <ErrorNote error={error || update.error || remove.error} />
       {isLoading ? <ListSkeleton /> : items.length === 0 ? (
         <Empty title="Nothing tracked yet" body="Open a resume's job matches and press Track on the roles you want to follow."
-          action={<Link href="/seeker"><Button>Go to resumes</Button></Link>} />
+          action={<Link href="/seeker"><Button>My resumes</Button></Link>} />
       ) : (
         <div className="relative -mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
           <div className="grid min-w-[60rem] grid-cols-5 gap-4">

@@ -1,2 +1,25 @@
 node_modules
 .next
+out
+coverage
+
+# Secrets: never copy these into a Docker image
+.env
+.env.*
+*.env
+!.env.example
+.dev.vars
+.dev.vars.*
+*.pem
+*.key
+secrets/
+
+# Cloudflare build output and local state
+.open-next
+.wrangler
+
+# Logs and local tooling
+*.log
+.git
+.vscode
+.idea

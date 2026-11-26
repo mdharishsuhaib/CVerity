@@ -122,7 +122,7 @@ function Nav() {
               <a href="/#trust" className="hidden whitespace-nowrap rounded-md px-2.5 py-1.5 text-muted transition-colors hover:text-ink lg:inline">Privacy</a>
               <span className="mx-2 hidden h-4 w-px bg-line md:block" />
               <Link href="/login" className="whitespace-nowrap rounded-md px-2.5 py-1.5 text-muted transition-colors hover:text-ink">Log in</Link>
-              <Link href="/register" className="ml-1 inline-flex h-8 items-center whitespace-nowrap rounded-md bg-gradient-to-b from-accent to-accent-hover px-3 text-[13px] font-medium text-accent-on shadow-button transition hover:-translate-y-px hover:brightness-110 active:scale-[0.98]">Get started</Link>
+              <Link href="/register" className="ml-1 inline-flex h-8 items-center whitespace-nowrap rounded-md bg-gradient-to-b from-accent to-accent-hover px-3 text-[13px] font-medium text-accent-on shadow-button transition hover:-translate-y-px hover:brightness-110 active:scale-[0.98]">Sign up</Link>
             </>
           )}
         </nav>

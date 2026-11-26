@@ -85,10 +85,10 @@ export function RegisterForm() {
   if (sentTo) return <CheckInbox email={sentTo} />;
 
   return (
-    <AuthShell brand title="Create your account" sub="Free. No credit card needed.">
+    <AuthShell brand scene="signup" title="Create your account" sub="ATS score, best-fit jobs and fixes in under a minute.">
       <form onSubmit={submit} className="grid gap-4" noValidate>
         <Field label="Full name" error={f.shown("full_name", errors.full_name)}>
-          <Input ref={refs.full_name} autoComplete="name" maxLength={NAME_MAX + 50} value={full_name} placeholder="Mohammed Haris Suhaib"
+          <Input ref={refs.full_name} autoComplete="name" maxLength={NAME_MAX + 50} value={full_name} placeholder="Ananya Rao"
             aria-invalid={!!f.shown("full_name", errors.full_name)}
             className={cn(f.shown("full_name", errors.full_name) && "ring-bad/70 focus:ring-bad/70")}
             onChange={(e) => f.set("full_name", e.target.value)} onBlur={() => f.blur("full_name")} />
@@ -114,7 +114,7 @@ export function RegisterForm() {
           </div>
         </fieldset>
         <FormError message={f.formErr} />
-        <Button className="w-full" disabled={f.busy}>{f.busy ? "Creating account..." : "Create account"}</Button>
+        <Button className="w-full" disabled={f.busy}>{f.busy ? "Creating..." : "Get started"}</Button>
       </form>
       <p className="text-sm text-muted">Already registered? <Link className="font-medium text-accent hover:underline" href="/login">Log in</Link></p>
     </AuthShell>
@@ -175,15 +175,15 @@ export function LoginForm() {
       <AuthShell brand title="Update your password" sub="You're logged in.">
         <Notice>Your password is shorter or simpler than our current rules allow for new accounts. Please choose a stronger one to keep your account safe.</Notice>
         <div className="flex flex-wrap gap-3">
-          <Button onClick={() => router.push("/account")}>Update password</Button>
-          <Button variant="quiet" onClick={() => router.push("/")}>Not now</Button>
+          <Button onClick={() => router.push("/account")}>Update now</Button>
+          <Button variant="quiet" onClick={() => router.push("/")}>Later</Button>
         </div>
       </AuthShell>
     );
   }
 
   return (
-    <AuthShell brand title="Log in" sub="Pick up where you left off.">
+    <AuthShell brand scene="login" title="Log in" sub="Pick up where you left off.">
       {notice && !f.formErr && <Notice>{notice}</Notice>}
       <form onSubmit={submit} className="grid gap-4" noValidate>
         <EmailField value={email} onChange={(v) => f.set("email", v)} onBlur={() => f.blur("email")}
@@ -195,7 +195,7 @@ export function LoginForm() {
         <FormError message={f.formErr} />
         <Button className="w-full" disabled={f.busy}>{f.busy ? "Logging in..." : "Log in"}</Button>
       </form>
-      <p className="text-sm text-muted">New here? <Link className="font-medium text-accent hover:underline" href="/register">Create account</Link></p>
+      <p className="text-sm text-muted">New here? <Link className="font-medium text-accent hover:underline" href="/register">Sign up</Link></p>
     </AuthShell>
   );
 }
@@ -234,7 +234,7 @@ export function ResendVerification({ email }: { email: string }) {
     <div className="grid gap-2 rounded-md bg-sunken px-3 py-2.5 text-sm text-muted" role="status">
       <p>{msg ?? "Your email address isn't verified yet. Didn't get the email? Check your spam folder or send a new link."}</p>
       <Button type="button" variant="secondary" size="sm" className="justify-self-start" onClick={resend} disabled={state !== "idle"}>
-        {state === "busy" ? "Sending..." : state === "sent" ? "Sent. You can resend in a minute" : "Resend verification email"}
+        {state === "busy" ? "Sending..." : state === "sent" ? "Sent. Retry in 1 min" : "Resend link"}
       </Button>
     </div>
   );

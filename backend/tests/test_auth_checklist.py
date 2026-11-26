@@ -29,7 +29,7 @@ def H():
     return {**CSRF, "x-cverity-client-ip": f"10.1.{n // 250}.{n % 250}"}
 
 
-def register(c, email, password=PW, confirm=None, name="Mohammed Haris Suhaib", headers=None):
+def register(c, email, password=PW, confirm=None, name="Ananya Mehta", headers=None):
     return c.post("/auth/register", headers=headers or H(), json={
         "full_name": name, "email": email, "password": password,
         "confirm_password": password if confirm is None else confirm})
@@ -65,7 +65,7 @@ def test_name_empty_and_spaces_only(name):
         v.check_name(name)
 
 
-@pytest.mark.parametrize("name", ["Mohammed Haris Suhaib", "Mary-Jane O'Neil", "Renée Zoë Müller", "J. R. R. Tolkien",
+@pytest.mark.parametrize("name", ["Ananya Mehta", "Mary-Jane O'Neil", "Renée Zoë Müller", "J. R. R. Tolkien",
                                   "D\u2019Souza", "X"])
 def test_name_apostrophes_hyphens_accents_single_char(name):
     assert v.check_name(name) == name
@@ -87,7 +87,7 @@ def test_name_too_long():
         v.check_name("a" * 101)
 
 
-@pytest.mark.parametrize("name", ["Haris\nSuhaib", "Haris\x00", "Haris\rX", "Ha\u202eris", "Haris\x1b[31m"])
+@pytest.mark.parametrize("name", ["Ananya\nMehta", "Ananya\x00", "Ananya\rX", "An\u202eanya", "Ananya\x1b[31m"])
 def test_name_control_characters(name):
     with pytest.raises(ValueError, match="valid name"):
         v.check_name(name)
@@ -112,7 +112,7 @@ def test_email_empty_and_malformed(email, msg):
 
 
 def test_email_leading_trailing_spaces_and_case():
-    assert v.check_email("  Haris@Example.COM  ") == "haris@example.com"
+    assert v.check_email("  Ananya@Example.COM  ") == "ananya@example.com"
     with TestClient(app) as c:
         assert register(c, "  Case.Test@Example.com ").status_code == 201
         assert login(c, "CASE.TEST@example.com", PW).status_code == 200
@@ -174,9 +174,9 @@ def test_password_common_or_predictable(pw):
 
 
 def test_password_context_checks():
-    for pw in ["my cverity password 1", "haris.suhaib@ex rocks", "suhaib forever and ever"]:
+    for pw in ["my cverity password 1", "ananya.mehta@ex rocks", "mehta forever and ever"]:
         with pytest.raises(ValueError, match="name, your email"):
-            v.check_new_password(pw, email="haris.suhaib@example.com", name="Mohammed Haris Suhaib")
+            v.check_new_password(pw, email="ananya.mehta@example.com", name="Ananya Mehta")
 
 
 def test_password_breach_check():
@@ -428,7 +428,7 @@ def test_brevo_email_payload():
 
     try:
         with patch("app.services.mailer.httpx.post", lambda url, **kw: calls.append((url, kw)) or R()):
-            mailer.send_verification_email("user@example.com", "Haris", "tok123")
+            mailer.send_verification_email("user@example.com", "Ananya", "tok123")
     finally:
         s.brevo_api_key, s.email_from, s.frontend_url = old
     url, kw = calls[0]

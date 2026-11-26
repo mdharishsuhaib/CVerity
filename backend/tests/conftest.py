@@ -7,6 +7,10 @@ sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{(ROOT / 'data' / 'test.db').as_posix()}")
 os.environ.setdefault("EMBEDDING_BACKEND", "hashing")
 os.environ.setdefault("LLM_PROVIDER", "none")
+# Tests never call real AI providers: a key in the local .env must not spend quota or send test resumes out.
+os.environ["LLM_FALLBACK_PROVIDER"] = "none"
+for _key in ("OPENAI_API_KEY", "OLLAMA_API_KEY", "OPENROUTER_API_KEY"):
+    os.environ[_key] = ""
 os.environ.setdefault("AUTO_SEED", "false")
 os.environ.setdefault("EMAIL_CHECK_DELIVERABILITY", "false")  # tests must not depend on DNS
 os.environ.setdefault("PASSWORD_BREACH_CHECK", "false")  # or on the Have I Been Pwned API

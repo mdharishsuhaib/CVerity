@@ -315,10 +315,12 @@ OPENAI_BASE_URL=https://api.groq.com/openai/v1
 OPENAI_MODEL=your-model-here
 OPENAI_API_KEY=your-key-here
 # Optional backup, used automatically when the main AI hits a limit or fails
-LLM_FALLBACK_PROVIDER=ollama
+LLM_FALLBACK_PROVIDER=ollama,openrouter
 OLLAMA_BASE_URL=https://ollama.com
 OLLAMA_MODEL=your-model-here
 OLLAMA_API_KEY=your-key-here
+OPENROUTER_MODEL=your-model-here
+OPENROUTER_API_KEY=your-key-here
 LLM_TIMEOUT_SECONDS=90
 ```
 

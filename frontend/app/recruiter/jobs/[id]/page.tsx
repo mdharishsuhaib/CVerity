@@ -87,12 +87,12 @@ function JobDetail() {
             e.target.value = "";
             if (files.length) up.mutate(files);
           }} />
-          <Button onClick={() => input.current?.click()} disabled={up.isPending}><UploadSimple size={16} weight="bold" />{up.isPending ? "Uploading..." : "Upload resumes"}</Button>
-          <Button variant="secondary" onClick={() => download(`/recruiter/jobs/${id}/export`, `candidates_${id}.csv`)}><DownloadSimple size={16} />CSV</Button>
-          <Button variant="secondary" disabled={sel.length < 2} onClick={() => setCompare(!compare)}>{compare ? "Close comparison" : `Compare ${sel.length || ""}`.trim()}</Button>
+          <Button onClick={() => input.current?.click()} disabled={up.isPending}><UploadSimple size={16} weight="bold" />{up.isPending ? "Uploading..." : "Add resumes"}</Button>
+          <Button variant="secondary" onClick={() => download(`/recruiter/jobs/${id}/export`, `candidates_${id}.csv`)}><DownloadSimple size={16} />Export CSV</Button>
+          <Button variant="secondary" disabled={sel.length < 2} onClick={() => setCompare(!compare)}>{compare ? "Close" : `Compare ${sel.length || ""}`.trim()}</Button>
           <Button variant={blind ? "primary" : "secondary"} aria-pressed={blind} onClick={() => setBlind(!blind)}
             title="Hide candidate names and file names so you screen on skills and experience only">
-            {blind ? <EyeSlash size={16} /> : <Eye size={16} />}Blind screening{blind ? " on" : ""}
+            {blind ? <EyeSlash size={16} /> : <Eye size={16} />}{blind ? "Blind: on" : "Blind mode"}
           </Button>
         </div>
         <div className="grid grid-cols-2 gap-3 md:ml-auto md:grid-cols-[6rem_6rem_14rem]">
@@ -237,7 +237,7 @@ function CandidateNotes({ initial, onSave, saving }: { initial: string; onSave: 
       <Textarea id="cand-notes" rows={3} maxLength={5000} value={notes} onChange={(e) => setNotes(e.target.value)}
         placeholder="Phone screen feedback, salary expectations, availability..." />
       <div className="flex items-center gap-2">
-        <Button size="sm" disabled={!dirty || saving} onClick={() => onSave(notes)}>{saving ? "Saving..." : "Save notes"}</Button>
+        <Button size="sm" disabled={!dirty || saving} onClick={() => onSave(notes)}>{saving ? "Saving..." : "Save"}</Button>
         {!dirty && initial && <span className="text-xs text-subtle">Saved</span>}
       </div>
     </div>

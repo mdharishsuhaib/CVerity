@@ -31,14 +31,19 @@ class Settings(BaseSettings):
     embedding_backend: str = "auto"  # auto | sentence-transformers | hashing
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
-    llm_provider: str = "none"  # none | openai | ollama  ("openai" = any OpenAI-compatible API, e.g. Groq)
-    llm_fallback_provider: str = "none"  # tried automatically when the main provider fails (quota, timeout, outage)
+    llm_provider: str = "none"  # none | openai | ollama | openrouter  ("openai" = any OpenAI-compatible API, e.g. Groq)
+    # Backups tried in order when the main provider fails (quota, timeout, outage). Comma-separated: "ollama,openrouter".
+    llm_fallback_provider: str = "none"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     openai_base_url: str = "https://api.openai.com/v1"  # Groq: https://api.groq.com/openai/v1
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1"
     ollama_api_key: str = ""  # set for Ollama Cloud (https://ollama.com)
+    openrouter_api_key: str = ""  # https://openrouter.ai/keys
+    # "openrouter/free" routes each request to whichever free model is up, so a retired model never breaks it.
+    openrouter_model: str = "openrouter/free"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
     llm_timeout_seconds: int = 60
 
     # Account protection: lock an account for a while after repeated wrong passwords.

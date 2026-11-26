@@ -167,7 +167,7 @@ function Matches({ id, onPick }: { id: string; onPick: (j: { id: number; title: 
                 </Link>
               ) : (
                 <Button size="sm" variant="quiet" disabled={track.isPending && track.variables === it.job.id} onClick={() => track.mutate(it.job.id)}>
-                  <BookmarkSimple size={14} />Track
+                  <BookmarkSimple size={14} />Save job
                 </Button>
               )}
               <Button size="sm" variant="secondary" onClick={() => onPick(job, "cover")}><EnvelopeSimple size={14} />Cover letter</Button>
@@ -213,7 +213,7 @@ function CoverLetter({ id, job, onPick }: { id: string; job: Target; onPick: (j:
       <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl bg-surface p-5 shadow-depth">
         <JobPicker id={id} job={job} onPick={onPick} />
         <Button onClick={() => job && m.mutate(job.id)} disabled={!job || m.isPending}>
-          <EnvelopeSimple size={16} weight="fill" />{m.isPending ? "Writing..." : d ? "Rewrite" : "Write cover letter"}
+          <EnvelopeSimple size={16} weight="fill" />{m.isPending ? "Writing..." : d ? "Rewrite" : "Write letter"}
         </Button>
       </div>
       <ErrorNote error={m.error} />
@@ -231,7 +231,7 @@ function CoverLetter({ id, job, onPick }: { id: string; job: Target; onPick: (j:
             </article>
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" onClick={copy}><Copy size={14} />{copied ? "Copied" : "Copy"}</Button>
-              <Button variant="secondary" size="sm" onClick={() => downloadText(text, `cover-letter-${slug(job?.title)}.txt`)}><DownloadSimple size={14} />Download .txt</Button>
+              <Button variant="secondary" size="sm" onClick={() => downloadText(text, `cover-letter-${slug(job?.title)}.txt`)}><DownloadSimple size={14} />Download</Button>
             </div>
           </div>
           {d.tips?.length > 0 && (
@@ -256,7 +256,7 @@ function InterviewPrep({ id, job, onPick }: { id: string; job: Target; onPick: (
       <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl bg-surface p-5 shadow-depth">
         <JobPicker id={id} job={job} onPick={onPick} />
         <Button onClick={() => job && m.mutate(job.id)} disabled={!job || m.isPending}>
-          <ChatsCircle size={16} weight="fill" />{m.isPending ? "Preparing..." : d ? "New questions" : "Prepare me"}
+          <ChatsCircle size={16} weight="fill" />{m.isPending ? "Preparing..." : d ? "New set" : "Prep me"}
         </Button>
       </div>
       <ErrorNote error={m.error} />
@@ -327,10 +327,10 @@ function Coach({ id, job, onClearJob }: { id: string; job: Target; onClearJob: (
         <div className="max-w-[60ch]">
           <p className="font-medium">{job ? `Tailoring for ${job.title}` : "General suggestions"}</p>
           <p className="mt-0.5 text-sm text-muted">
-            {job ? <>Uses this job's required skills. <button onClick={onClearJob} className="font-medium text-accent hover:underline">Use general mode</button></> : "Pick Tailor on any job match to focus the rewrite on that role."}
+            {job ? <>Uses this job's required skills. <button onClick={onClearJob} className="font-medium text-accent hover:underline">Go general</button></> : "Pick Tailor on any job match to focus the rewrite on that role."}
           </p>
         </div>
-        <Button onClick={() => m.mutate()} disabled={m.isPending}><Sparkle size={16} weight="fill" />{m.isPending ? "Writing..." : d ? "Regenerate" : "Generate"}</Button>
+        <Button onClick={() => m.mutate()} disabled={m.isPending}><Sparkle size={16} weight="fill" />{m.isPending ? "Writing..." : d ? "Redo" : "Fix my resume"}</Button>
       </div>
       <ErrorNote error={m.error} />
       {m.isPending && <div className="grid gap-3"><Skeleton className="h-20" /><Skeleton className="h-32" /></div>}

@@ -36,7 +36,7 @@ services:
       - key: OPENAI_MODEL
         value: openai/gpt-oss-20b
       - key: LLM_FALLBACK_PROVIDER
-        value: ollama
+        value: ollama,openrouter
       - key: OLLAMA_BASE_URL
         value: https://ollama.com
       - key: OLLAMA_MODEL
@@ -52,6 +52,10 @@ services:
         sync: false
       - key: OLLAMA_API_KEY
         sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: openrouter/free
       # Email verification + password reset. Verification is enforced automatically once a key is set.
       # BREVO_API_KEY (https://brevo.com): sends from a verified Gmail sender, no domain needed.
       # EMAIL_FROM: e.g. "CVerity <you@gmail.com>" (must be the verified sender). FRONTEND_URL builds the links.
